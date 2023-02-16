@@ -90,11 +90,12 @@ void CommandHandler::run()
     }
 
     // いきなりCtrl+Cを押すとループから抜けられずにバグるため，必ず"q"で抜けるようにする．
-    if (c == 'q')
-    {
-      ROS_INFO("q is detected. Command handling is terminated.");
-      break;
-    }
+    // と思ったが普通にCtrl+Cで落ちてくれるっぽい．
+    // if (c == 'q')
+    // {
+    //   ROS_INFO("q is detected. Command handling is terminated.");
+    //   break;
+    // }
 
     switch (c)
     {
