@@ -9,8 +9,8 @@
 #include <dh_linear_control/mpc/linear_dense.hpp>
 #include <dh_linear_control/c2d/rk4.hpp>
 #include <dh_linear_control/util.hpp>
-#include <dh_kdl_msgs/PoseVel.h>
 
+#include <multirotor_msgs/Command.h>
 #include <multirotor_msgs/ControllerFeedback.h>
 
 #include "../../include/multirotor_controller/position_controller.hpp"
@@ -39,8 +39,8 @@ private:
   const vector<RotorProperty> rotor_props_;
 
   dh_kdl_msgs::PoseVel bs_;
-  dh_kdl_msgs::PoseVel bs_des_;
-  bool bs_des_subscribed_;
+  multirotor_msgs::Command cmd_;
+  bool cmd_subscribed_;
 
   PositionController pos_controller_;
   AccelerationController acc_controller_;
@@ -49,18 +49,16 @@ private:
   mav_msgs::Actuators rotor_vels_;
   dh_ros::Stopwatch stopwatch_;
 
-  // Publisher
+  // PubSub
   ros::Publisher rotor_vels_pub_;
   ros::Publisher feedback_pub_;
-
-  // Subscriber
   ros::Subscriber bs_sub_;
-  ros::Subscriber bs_des_sub_;
+  ros::Subscriber cmd_sub_;
 
   void rotorVelsFromCtrlInput(const vector<double>& u, mav_msgs::Actuators& rotor_vels);
 
   void bsCb(const dh_kdl_msgs::PoseVel& msg);
-  void bsDesCb(const dh_kdl_msgs::Pose& msg);
+  void commandCb(const multirotor_msgs::Command& msg);
 };
 
 Controller::Controller(ros::NodeHandle& nh)
@@ -82,15 +80,14 @@ Controller::Controller(ros::NodeHandle& nh)
   feedback_.thrust_forces.resize(num_rotors_);
   rotor_vels_.angular_velocities.resize(num_rotors_);
 
-  // Publisher
+  const string ns = ros::this_node::getNamespace();
+
+  // PubSub
   rotor_vels_pub_ =
     nh.advertise<mav_msgs::Actuators>("/" + drone_name + "/command/motor_speed", 1, false);
-  feedback_pub_ =
-    nh.advertise<multirotor_msgs::ControllerFeedback>(ros::this_node::getNamespace() + "/feedback", 1, false);
-
-  // Subscriber
-  bs_sub_ = nh.subscribe(ros::this_node::getNamespace() + "/base_state", 1, &Controller::bsCb, this);
-  bs_des_sub_ = nh.subscribe(ros::this_node::getNamespace() + "/desired_base_state", 1, &Controller::bsDesCb, this);
+  feedback_pub_ = nh.advertise<multirotor_msgs::ControllerFeedback>(ns + "/feedback", 1, false);
+  bs_sub_ = nh.subscribe(ns + "/base_state", 1, &Controller::bsCb, this);
+  cmd_sub_ = nh.subscribe(ns + "/command", 1, &Controller::commandCb, this);
 }
 
 void Controller::iterate()
@@ -102,10 +99,11 @@ void Controller::iterate()
   auto& yaw_des = feedback_.desired_yaw;
   auto& u = feedback_.thrust_forces;
 
-  yaw_des = bs_des_.pose.rpy.z();
+  yaw_des = cmd_.target_yaw_angle;  // ヨー角はコマンドをそのまま目標値にする
 
   // stopwatch_.start();
-  pos_controller_.update(bs_.pose.pos, bs_des_.pose.pos, bs_.twist.vel, bs_des_.twist.vel, acc_des);
+  pos_controller_.update(
+    bs_.pose.pos, cmd_.target_position, bs_.twist.vel, Vector::Zero(), acc_des);
   acc_controller_.update(acc_des, yaw_des, U, roll_des, pitch_des);
   rot_controller_.update(bs_, U, roll_des, pitch_des, yaw_des, u);
   // stopwatch_.stop();
@@ -136,16 +134,16 @@ void Controller::bsCb(const dh_kdl_msgs::PoseVel& msg)
   bs_ = msg;
 
   // トピックが揃っていたら，状態を観測するたびに一回だけ制御器を回す．
-  if (bs_des_subscribed_)
+  if (cmd_subscribed_)
   {
     iterate();
   }
 }
 
-void Controller::bsDesCb(const dh_kdl_msgs::Pose& msg)
+void Controller::commandCb(const multirotor_msgs::Command& msg)
 {
-  bs_des_.pose = msg;
-  bs_des_subscribed_ = true;
+  cmd_ = msg;
+  cmd_subscribed_ = true;
 }
 
 int main(int argc, char** argv)

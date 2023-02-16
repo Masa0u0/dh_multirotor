@@ -10,10 +10,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS
-	dh_kdl_msgs  # TODO: delete
-	kdl_msgs  # TODO: delete
+	multirotor_msgs
 	dh_ros_tools
 	dh_std_tools
+	kdl_msgs
 	roscpp
 )
 

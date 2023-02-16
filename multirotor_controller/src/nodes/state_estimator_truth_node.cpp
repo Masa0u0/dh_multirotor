@@ -42,9 +42,10 @@ private:
 
 StateEstimator::StateEstimator(ros::NodeHandle& nh)
 {
-  string drone_name = dh_ros::getParam<string>("/drone_name");
+  const string drone_name = dh_ros::getParam<string>("/drone_name");
+  const string ns = ros::this_node::getNamespace();
 
-  bs_pub_ = nh.advertise<dh_kdl_msgs::PoseVel>(ros::this_node::getNamespace() + "/base_state", 1, false);
+  bs_pub_ = nh.advertise<dh_kdl_msgs::PoseVel>(ns + "/base_state", 1, false);
   odom_sub_ =
     nh.subscribe("/" + drone_name + "/ground_truth/odometry", 1, &StateEstimator::odomCb, this);
 }

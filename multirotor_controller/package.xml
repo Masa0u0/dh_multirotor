@@ -14,7 +14,6 @@
 	<depend>mav_msgs</depend>
 
 	<depend>dh_kdl</depend>
-	<depend>dh_kdl_msgs</depend>
 	<depend>dh_linear_control</depend>
 	<depend>dh_ros_tools</depend>
 	<depend>dh_eigen_tools</depend>

@@ -12,7 +12,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(catkin REQUIRED COMPONENTS
 	multirotor_msgs
 	dh_kdl
-	dh_kdl_msgs
 	dh_linear_control
 	dh_quadprog
 	dh_ros_tools

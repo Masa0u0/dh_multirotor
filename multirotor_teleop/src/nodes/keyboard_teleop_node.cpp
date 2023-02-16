@@ -9,7 +9,8 @@
 #include <dh_std_tools/struct.hpp>
 #include <dh_std_tools/algorithm.hpp>
 #include <dh_ros_tools/rosparam.hpp>
-#include <dh_kdl_msgs/Pose.h>
+
+#include <multirotor_msgs/Command.h>
 
 #define KEYCODE_U 0x41
 #define KEYCODE_D 0x42
@@ -17,7 +18,6 @@
 #define KEYCODE_L 0x44
 
 using namespace std;
-using namespace KDL;
 using namespace dh_std;
 
 /**
@@ -43,11 +43,11 @@ private:
   // other
   termios tempcopy_, changed_;
   double freq_;
-  double delta_pos_;          // 1度のキーボード入力での並進位置の変化量
-  double delta_rot_;          // 1度のキーボード入力での回転位置の変化量
-  dh_kdl_msgs::Pose bs_des_;  // 発行するベースの指令速度
+  double delta_pos_;              // 1度のキーボード入力での並進位置の変化量
+  double delta_rot_;              // 1度のキーボード入力での回転位置の変化量
+  multirotor_msgs::Command cmd_;  // 位置コマンド
 
-  ros::Publisher bs_des_pub_;
+  ros::Publisher cmd_pub_;
 
   void getParams();
   void prepare(int fd);
@@ -62,20 +62,19 @@ CommandHandler::CommandHandler(ros::NodeHandle& nh)
   delta_rot_ = max_angvel_ / key_repeat_freq_;
 
   // z座標の初期値を制限の下限に設定
-  bs_des_.pos(2) = z_limit_.lower;
+  cmd_.target_position.z(z_limit_.lower);
 
-  bs_des_pub_ =
-    nh.advertise<dh_kdl_msgs::Pose>("/multirotor_controller/desired_base_state", 1, false);
+  cmd_pub_ = nh.advertise<multirotor_msgs::Command>("/multirotor_controller/command", 1, false);
 
   prepare(0);
 }
 
 void CommandHandler::run()
 {
-  auto& x = bs_des_.pos(0);
-  auto& y = bs_des_.pos(1);
-  auto& z = bs_des_.pos(2);
-  auto& yaw = bs_des_.rpy(2);
+  auto& x = cmd_.target_position(0);
+  auto& y = cmd_.target_position(1);
+  auto& z = cmd_.target_position(2);
+  auto& yaw = cmd_.target_yaw_angle;
 
   char c;
   ros::Rate rate(freq_);
@@ -143,7 +142,7 @@ void CommandHandler::run()
     // リセットしないと同じコマンドが連続して入力されてしまう．
     c = 0;
 
-    bs_des_pub_.publish(bs_des_);
+    cmd_pub_.publish(cmd_);
 
     rate.sleep();
   }
