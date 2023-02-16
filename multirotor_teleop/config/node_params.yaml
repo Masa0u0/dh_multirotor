@@ -1,0 +1,17 @@
+keyboard_teleop:
+  key_repeat_freq: 30.
+  max_linear_velocity: 2.
+  max_angular_velocity: 1.
+  pose_limit:
+    x:
+      min: -10.
+      max: 10.
+    y:
+      min: -10.
+      max: 10.
+    z:
+      min: 1.
+      max: 10.
+    yaw:
+      min: -1.0e+9
+      max: +1.0e+9

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package format="2">
+
+	<name>multirotor_msgs</name>
+	<version>0.0.0</version>
+	<description>TODO</description>
+	<maintainer email="masa0u0masa1215@gmail.com">Masayoshi Dohi</maintainer>
+	<license>TODO</license>
+
+	<buildtool_depend>catkin</buildtool_depend>
+
+	<depend>kdl_msgs</depend>
+
+</package>

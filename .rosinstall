@@ -1,0 +1,35 @@
+- git: {
+  local-name: dh_kdl,
+  uri: git@github.com:Masa0u0/dh_kdl.git,
+  version: main,
+}
+
+- git: {
+  local-name: dh_kdl_msgs,
+  uri: git@github.com:Masa0u0/dh_kdl_msgs.git,
+  version: main,
+}
+
+- git: {
+  local-name: dh_linear_control,
+  uri: git@github.com:Masa0u0/dh_linear_control.git,
+  version: main,
+}
+
+- git: {
+  local-name: dh_ros_tools,
+  uri: git@github.com:Masa0u0/dh_ros_tools.git,
+  version: main,
+}
+
+- git: {
+  local-name: dh_eigen_tools,
+  uri: git@github.com:Masa0u0/dh_eigen_tools.git,
+  version: main,
+}
+
+- git: {
+  local-name: dh_std_tools,
+  uri: git@github.com:Masa0u0/dh_std_tools.git,
+  version: main,
+}

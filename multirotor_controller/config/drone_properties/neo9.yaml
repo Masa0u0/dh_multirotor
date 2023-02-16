@@ -1,0 +1,38 @@
+drone_name: "neo9"
+num_rotors: 6
+rotor_0:
+  link_name: "neo9/rotor_0"
+  direction: "ccw"
+  max_velocity: 1047.2
+  motor_constant: 6.8e-6
+  moment_constant: 0.016754
+rotor_1:
+  link_name: "neo9/rotor_1"
+  direction: "cw"
+  max_velocity: 1047.2
+  motor_constant: 6.8e-6
+  moment_constant: 0.016754
+rotor_2:
+  link_name: "neo9/rotor_2"
+  direction: "ccw"
+  max_velocity: 1047.2
+  motor_constant: 6.8e-6
+  moment_constant: 0.016754
+rotor_3:
+  link_name: "neo9/rotor_3"
+  direction: "cw"
+  max_velocity: 1047.2
+  motor_constant: 6.8e-6
+  moment_constant: 0.016754
+rotor_4:
+  link_name: "neo9/rotor_4"
+  direction: "ccw"
+  max_velocity: 1047.2
+  motor_constant: 6.8e-6
+  moment_constant: 0.016754
+rotor_5:
+  link_name: "neo9/rotor_5"
+  direction: "cw"
+  max_velocity: 1047.2
+  motor_constant: 6.8e-6
+  moment_constant: 0.016754
