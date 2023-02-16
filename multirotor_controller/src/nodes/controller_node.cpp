@@ -30,8 +30,6 @@ class Controller
 public:
   explicit Controller(ros::NodeHandle& nh);
 
-  void iterate();
-
 private:
   Tree tree_;
 
@@ -55,6 +53,7 @@ private:
   ros::Subscriber bs_sub_;
   ros::Subscriber cmd_sub_;
 
+  void runOnce();
   void rotorVelsFromCtrlInput(const vector<double>& u, mav_msgs::Actuators& rotor_vels);
 
   void bsCb(const dh_kdl_msgs::PoseVel& msg);
@@ -68,8 +67,8 @@ Controller::Controller(ros::NodeHandle& nh)
     rot_controller_(tree_)
 {
   // URDFを取得
-  string drone_name = dh_ros::getParam<string>("/drone_name");
-  string description = dh_ros::getParam<string>("/" + drone_name + "/robot_description");
+  const string drone_name = dh_ros::getParam<string>("/drone_name");
+  const string description = dh_ros::getParam<string>("/" + drone_name + "/robot_description");
 
   // Treeを取得
   bool ok = kdl_parser::treeFromString(description, tree_);
@@ -90,7 +89,7 @@ Controller::Controller(ros::NodeHandle& nh)
   cmd_sub_ = nh.subscribe(ns + "/command", 1, &Controller::commandCb, this);
 }
 
-void Controller::iterate()
+void Controller::runOnce()
 {
   auto& acc_des = feedback_.desired_acceleration;
   auto& U = feedback_.thrust_force_sum;
@@ -136,7 +135,7 @@ void Controller::bsCb(const dh_kdl_msgs::PoseVel& msg)
   // トピックが揃っていたら，状態を観測するたびに一回だけ制御器を回す．
   if (cmd_subscribed_)
   {
-    iterate();
+    runOnce();
   }
 }
 
