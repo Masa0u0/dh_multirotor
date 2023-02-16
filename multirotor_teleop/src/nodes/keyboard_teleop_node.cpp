@@ -17,11 +17,13 @@
 #define KEYCODE_R 0x43
 #define KEYCODE_L 0x44
 
+#define INFO_PERIOD 1.
+
 using namespace std;
 using namespace dh_std;
 
 /**
- * @brief キーボード入力を受け取り，{world}から見た{base}のPoseを発行する．
+ * @brief キーボード入力を受け取り，コマンドを発行する．
  */
 class CommandHandler
 {
@@ -42,7 +44,7 @@ private:
 
   // other
   termios tempcopy_, changed_;
-  double freq_;
+  double update_rate_;
   double delta_pos_;              // 1度のキーボード入力での並進位置の変化量
   double delta_rot_;              // 1度のキーボード入力での回転位置の変化量
   multirotor_msgs::Command cmd_;  // 位置コマンド
@@ -57,7 +59,7 @@ CommandHandler::CommandHandler(ros::NodeHandle& nh)
 {
   getParams();
 
-  freq_ = key_repeat_freq_ * 10.;  // 全てのキーボード入力を拾うためにオーバーサンプリング
+  update_rate_ = key_repeat_freq_ * 10.;  // 全てのキーボード入力を拾うためにオーバーサンプリング
   delta_pos_ = max_linvel_ / key_repeat_freq_;
   delta_rot_ = max_angvel_ / key_repeat_freq_;
 
@@ -76,8 +78,8 @@ void CommandHandler::run()
   auto& z = cmd_.target_position(2);
   auto& yaw = cmd_.target_yaw_angle;
 
-  char c;
-  ros::Rate rate(freq_);
+  char c = 0;
+  ros::Rate rate(update_rate_);
 
   while (ros::ok())
   {
@@ -98,41 +100,49 @@ void CommandHandler::run()
     {
       case 'w':  // X+
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Moving forward");
         x = dh_std::clamp(x + delta_pos_, x_limit_.lower, x_limit_.upper, "X");
         break;
       }
       case 's':  // X-
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Moving backward");
         x = dh_std::clamp(x - delta_pos_, x_limit_.lower, x_limit_.upper, "X");
         break;
       }
       case 'a':  // Y+
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Moving left");
         y = dh_std::clamp(y + delta_pos_, y_limit_.lower, y_limit_.upper, "Y");
         break;
       }
       case 'd':  // Y-
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Moving right");
         y = dh_std::clamp(y - delta_pos_, y_limit_.lower, y_limit_.upper, "Y");
         break;
       }
       case KEYCODE_U:  // Z+
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Moving up");
         z = dh_std::clamp(z + delta_pos_, z_limit_.lower, z_limit_.upper, "Z");
         break;
       }
       case KEYCODE_D:  // Z-
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Moving down");
         z = dh_std::clamp(z - delta_pos_, z_limit_.lower, z_limit_.upper, "Z");
         break;
       }
       case KEYCODE_L:  // yaw+
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Rotating left");
         yaw = dh_std::clamp(yaw + delta_rot_, yaw_limit_.lower, yaw_limit_.upper, "Yaw");
         break;
       }
       case KEYCODE_R:  // yaw-
       {
+        ROS_INFO_THROTTLE(INFO_PERIOD, "Rotating right");
         yaw = dh_std::clamp(yaw - delta_rot_, yaw_limit_.lower, yaw_limit_.upper, "Yaw");
         break;
       }
@@ -185,7 +195,7 @@ void CommandHandler::prepare(int fd)
   // 入力受付のタイムリミットを設定
   // https://stackoverflow.com/questions/2917881/how-to-implement-a-timeout-in-read-function-call
   changed_.c_cc[VMIN] = 0.;
-  changed_.c_cc[VTIME] = 10. / freq_;
+  changed_.c_cc[VTIME] = 10. / update_rate_;
 
   tcsetattr(fd, TCSANOW, &changed_);
 }
