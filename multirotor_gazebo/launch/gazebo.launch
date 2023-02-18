@@ -1,7 +1,0 @@
-<launch>
-
-  <arg name='drone_properties_path' default='$(find multirotor_controller)/config/drone_properties/iris.yaml'/>
-
-  <rosparam file='$(arg drone_properties_path)' command='load'/>
-
-</launch>
