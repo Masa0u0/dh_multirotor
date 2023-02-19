@@ -94,7 +94,7 @@ void RotationController::getParams()
   ROS_ASSERT(0 < Hu_ && Hu_ <= Hp_);
   ROS_ASSERT(weight_scale_ > 0.);
   ROS_ASSERT(dh_std::all_ge(Q_values_, 0.));
-  ROS_ASSERT(R_value_ > 0.);
+  ROS_ASSERT(R_value_ >= 0.);
   ROS_ASSERT(S_value_ > 0.);
 }
 
