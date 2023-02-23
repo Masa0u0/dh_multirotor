@@ -16,6 +16,7 @@ using namespace KDL;
 
 MultiRotorDynamics::MultiRotorDynamics(const Tree& tree)
   : kdl_model_(tree),
+    ez_(0., 0., 1.),
     num_rotors_(dh_ros::getParam<int>("/num_rotors")),
     rotor_props_(getRotorProperties())
 {
@@ -25,42 +26,35 @@ MultiRotorDynamics::MultiRotorDynamics(const Tree& tree)
 void MultiRotorDynamics::updateInternalDataStructures()
 {
   kdl_model_.updateInternalDataStructures();
-  setB();
 }
 
-void MultiRotorDynamics::update(double roll, double pitch)
+void MultiRotorDynamics::update(const double& roll, const double& pitch, const JntArray& q)
+{
+  updateA(roll, pitch);
+  updateB(q);
+}
+
+void MultiRotorDynamics::updateA(const double& roll, const double& pitch)
 {
   eulerrateFromAngvelLocal(roll, pitch, rpyvel_angvel_kdl_);
   tf::rotationKDLToEigen(rpyvel_angvel_kdl_, rpyvel_angvel_eigen_);
   A.block(0, 3, 3, 3) = rpyvel_angvel_eigen_;
 }
 
-void MultiRotorDynamics::setB()
+void MultiRotorDynamics::updateB(const JntArray& q)
 {
-  const Vector3d ez(0., 0., 1.);
-  const JntArray dummy_q(kdl_model_.getNrOfJoints());
+  kdl_model_.treeInertia(q, P_base_cog_, I_cog_kdl_);
+  tf::rotInertiaKDLToEigen(I_cog_kdl_, I_cog_eigen_);
+  I_cog_eigen_.computeInverseWithCheck(I_cog_inv_, invertible_);
+  ROS_ASSERT(invertible_);
 
-  Vector P_base_cog;
-  RotationalInertia I_cog_kdl;
-  Eigen::Matrix3d I_cog_eigen;
-  Eigen::Matrix3d I_cog_inv;
-  bool invertible;
-  kdl_model_.treeInertia(dummy_q, P_base_cog, I_cog_kdl);
-  tf::rotInertiaKDLToEigen(I_cog_kdl, I_cog_eigen);
-  I_cog_eigen.computeInverseWithCheck(I_cog_inv, invertible);
-  ROS_ASSERT(invertible);
-
-  Frame T_base_rotor;
-  Vector P_cog_rotor_kdl;
-  Vector3d P_cog_rotor_eigen;
-  Vector3d v;
   for (int i = 0; i < num_rotors_; ++i)
   {
-    kdl_model_.fkPos(dummy_q, rotor_props_[i].link_name, T_base_rotor);
-    P_cog_rotor_kdl = T_base_rotor.p - P_base_cog;
-    tf::vectorKDLToEigen(P_cog_rotor_kdl, P_cog_rotor_eigen);
-    B.block(3, i, 3, 1) =
-      I_cog_inv
-      * (P_cog_rotor_eigen.cross(ez) - rotor_props_[i].direction * rotor_props_[i].moment_constant * ez);
+    kdl_model_.fkPos(q, rotor_props_[i].link_name, T_base_rotor_);
+    P_cog_rotor_kdl_ = T_base_rotor_.p - P_base_cog_;
+    tf::vectorKDLToEigen(P_cog_rotor_kdl_, P_cog_rotor_eigen_);
+    const auto& d = rotor_props_[i].direction;
+    const auto& c = rotor_props_[i].moment_constant;
+    B.block(3, i, 3, 1) = I_cog_inv_ * (P_cog_rotor_eigen_.cross(ez_) - (d * c) * ez_);
   }
 }

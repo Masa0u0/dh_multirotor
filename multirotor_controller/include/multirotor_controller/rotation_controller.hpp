@@ -1,6 +1,5 @@
 #pragma once
 
-#include <memory>
 #include <Eigen/Core>
 #include <kdl/frames.hpp>
 
@@ -22,10 +21,11 @@ public:
 
   void update(
     const dh_kdl_msgs::PoseVel& bs,
-    double U,
-    double roll_des,
-    double pitch_des,
-    double yaw_des,
+    const KDL::JntArray& q,
+    const double& U,
+    const double& roll_des,
+    const double& pitch_des,
+    const double& yaw_des,
     std::vector<double>& u_opt);
 
 private:
@@ -62,14 +62,19 @@ private:
   dh_ros::Stopwatch stopwatch_;  // 計算時間計測用
 
   void getParams();
-  void updateDynamics(double roll, double pitch, double roll_des, double pitch_des);
+  void updateDynamics(
+    const double& roll,
+    const double& pitch,
+    const double& roll_des,
+    const double& pitch_des,
+    const KDL::JntArray& q);
   void updateX(const dh_kdl_msgs::PoseVel& bs);
-  void updateS(double roll_des, double pitch_des, double yaw_des);
+  void updateS(const double& roll_des, const double& pitch_des, const double& yaw_des);
   Eigen::MatrixXd makeCz();
   Eigen::VectorXd makeWeight(const std::vector<double>& values, const std::vector<double>& scales);
   Eigen::VectorXd makeWeight_R();
   Eigen::VectorXd makeWeight_S();
   Eigen::VectorXd makeWeight_Q();
   ctrl::LinearEquation makeBaseInputCondition();
-  void updateInputCondition(double U);
+  void updateInputCondition(const double& U);
 };

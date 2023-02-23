@@ -44,17 +44,19 @@ void RotationController::updateInternalDataStructures()
 
 void RotationController::update(
   const dh_kdl_msgs::PoseVel& bs,
-  double U,
-  double roll_des,
-  double pitch_des,
-  double yaw_des,
+  const JntArray& q,
+  const double& U,
+  const double& roll_des,
+  const double& pitch_des,
+  const double& yaw_des,
   vector<double>& u_opt)
 {
+  ROS_ASSERT(q.rows() == kdl_model_.getNrOfJoints());
   ROS_ASSERT(U > 0.);
   ROS_ASSERT(u_opt.size() == num_rotors_);
 
   const auto& rpy = bs.pose.rpy;
-  updateDynamics(rpy.x(), rpy.y(), roll_des, pitch_des);
+  updateDynamics(rpy.x(), rpy.y(), roll_des, pitch_des, q);
   updateX(bs);
   updateS(roll_des, pitch_des, yaw_des);
 
@@ -99,10 +101,11 @@ void RotationController::getParams()
 }
 
 void RotationController::updateDynamics(
-  double roll,
-  double pitch,
-  double roll_des,
-  double pitch_des)
+  const double& roll,
+  const double& pitch,
+  const double& roll_des,
+  const double& pitch_des,
+  const JntArray& q)
 {
   double t;
   double roll_k, pitch_k;
@@ -115,7 +118,7 @@ void RotationController::updateDynamics(
     roll_k = ctrl::firstOrderPos(roll, roll_des, T_refs_[ROLL], t);
     pitch_k = ctrl::firstOrderPos(pitch, pitch_des, T_refs_[PITCH], t);
 
-    cont_.update(roll_k, pitch_k);
+    cont_.update(roll_k, pitch_k, q);
     discs_[k] = c2d_.convert(cont_, dt_);
   }
 }
@@ -127,7 +130,10 @@ void RotationController::updateX(const dh_kdl_msgs::PoseVel& bs)
   x_ << r.x(), r.y(), r.z(), w.x(), w.y(), w.z();
 }
 
-void RotationController::updateS(double roll_des, double pitch_des, double yaw_des)
+void RotationController::updateS(
+  const double& roll_des,
+  const double& pitch_des,
+  const double& yaw_des)
 {
   s_ << roll_des, pitch_des, yaw_des, 0., 0., 0.;
 }
@@ -207,7 +213,7 @@ ctrl::LinearEquation RotationController::makeBaseInputCondition()
   return F_f;
 }
 
-void RotationController::updateInputCondition(double U)
+void RotationController::updateInputCondition(const double& U)
 {
   F_f_.b(num_rotors_ * 2) = U;
   F_f_.b(num_rotors_ * 2 + 1) = -U;

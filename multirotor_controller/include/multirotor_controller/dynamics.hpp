@@ -33,22 +33,26 @@ public:
    * @param pitch {world}に対する{base}のピッチ角
    * @param q アームの関節角
    */
-  void update(double roll, double pitch);
+  void update(const double& roll, const double& pitch, const KDL::JntArray& q);
 
 private:
   KDL::TreeKDLModel kdl_model_;
 
+  const Eigen::Vector3d ez_;
   const int num_rotors_;
   const std::vector<RotorProperty> rotor_props_;
 
-  // bool invertible_;
-  // KDL::Vector cog_;
-  // KDL::RotationalInertia rot_inertia_kdl_;  // CoG周りの回転慣性テンソル
-  // Eigen::Matrix3d rot_inertia_eigen_;
-  // Eigen::Matrix3d rot_inertia_inv_;
-  // Eigen::Matrix3d R_world_base_eigen_;
   KDL::Rotation rpyvel_angvel_kdl_;
   Eigen::Matrix3d rpyvel_angvel_eigen_;
+  bool invertible_;
+  KDL::Vector P_base_cog_;
+  KDL::Vector P_cog_rotor_kdl_;
+  Eigen::Vector3d P_cog_rotor_eigen_;
+  KDL::Frame T_base_rotor_;
+  KDL::RotationalInertia I_cog_kdl_;  // CoG周りの回転慣性テンソル
+  Eigen::Matrix3d I_cog_eigen_;       // CoG周りの回転慣性テンソル
+  Eigen::Matrix3d I_cog_inv_;
 
-  void setB();
+  void updateA(const double& roll, const double& pitch);
+  void updateB(const KDL::JntArray& q);
 };
