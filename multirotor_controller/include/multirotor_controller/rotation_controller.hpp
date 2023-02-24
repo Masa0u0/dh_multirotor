@@ -50,6 +50,7 @@ private:
   ctrl::C2D_RK4 c2d_;                        // 状態方程式を離散化
   Eigen::VectorXd x_;
   Eigen::VectorXd s_;
+  Eigen::VectorXd u_;
 
   Eigen::MatrixXd Cz_;
   Eigen::VectorXd R_;

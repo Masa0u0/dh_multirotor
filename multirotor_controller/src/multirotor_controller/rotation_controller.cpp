@@ -18,7 +18,8 @@ RotationController::RotationController(const Tree& tree)
     cont_(tree),
     c2d_(X_DIM, num_rotors_),
     x_(X_DIM),
-    s_(X_DIM)
+    s_(X_DIM),
+    u_(num_rotors_)
 {
   getParams();
 
@@ -63,8 +64,9 @@ void RotationController::update(
   updateInputCondition(U);
 
   // stopwatch_.start();
-  ctrl::LinearDenseMPC mpc(discs_, Cz_, Hp_, Hu_, dt_, T_refs_, R_, S_, Q_, E_e_, F_f_, G_g_);
-  u_opt = eigen_tools::toStdVector(mpc.step(x_, s_));
+  u_ = ctrl::solveLinearDenseMPC(
+    discs_, Cz_, Hp_, Hu_, dt_, T_refs_, R_, S_, Q_, E_e_, F_f_, G_g_, x_, s_, u_);
+  u_opt = eigen_tools::toStdVector(u_);
   // stopwatch_.stop();
 }
 
