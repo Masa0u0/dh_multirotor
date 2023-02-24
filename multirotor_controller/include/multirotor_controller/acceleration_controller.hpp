@@ -5,6 +5,8 @@
 
 #include <dh_kdl/treejnttoinertiasolver.hpp>
 
+#include "./utils.hpp"
+
 class AccelerationController
 {
 public:
@@ -20,6 +22,9 @@ public:
     double& pitch_out);
 
 private:
+  const std::vector<RotorProperty> rotor_props_;
+  double max_U_;
+
   KDL::TreeJntToInertiaSolver inertia_solver_;
   double mass_;
 };
