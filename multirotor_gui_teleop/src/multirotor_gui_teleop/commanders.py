@@ -18,6 +18,8 @@ from .utils import remap
 
 class CommandersWidget(QScrollArea):
 
+    LABEL_PSIZE = 12
+
     def __init__(self, main: GuiTeleopWidget) -> None:
         super().__init__()
         self._main = main
@@ -33,6 +35,11 @@ class CommandersWidget(QScrollArea):
         self._drone_cmd = Command()
 
         # ドローンの位置姿勢
+        drone_label = QLabel("Multirotor Command")
+        drone_label.setFont(QFont("Default", self.LABEL_PSIZE, QFont.Bold))
+        drone_label.setAlignment(Qt.AlignCenter)
+        self._rows.addWidget(drone_label)
+
         x_min = rospy.get_param("~pose_limit/x/min")
         x_max = rospy.get_param("~pose_limit/x/max")
         assert x_min <= 0. <= x_max
@@ -58,10 +65,16 @@ class CommandersWidget(QScrollArea):
         self._rows.addWidget(self.drone_cmd_yaw)
 
         # その他の可動関節
+        joint_label = QLabel("Joint Command")
+        joint_label.setFont(QFont("Default", self.LABEL_PSIZE, QFont.Bold))
+        joint_label.setAlignment(Qt.AlignCenter)
+        self._rows.addWidget(joint_label)
+
         drone_name = rospy.get_param("/drone_name")
         joint_names = rospy.get_param("/required_joint_names")
         robot = Robot.from_parameter_server("/robot_description")
         self.joint_cmds = []
+
         for joint_name in joint_names:
             joint = robot.joint_map[joint_name]
             commander = Commander(
@@ -74,12 +87,12 @@ class CommandersWidget(QScrollArea):
             self.joint_cmds.append(commander)
             self._rows.addWidget(commander)
 
+        # Publisher
         self._drone_cmd_pub = rospy.Publisher(
             "/multirotor_controller/command", Command, queue_size=1
         )
-        
-        # ダミーウィジェット
-        self._add_dummy_widget()
+
+        self._add_dummy_widget()  # 余白を埋めるためのダミーウィジェット
 
         self.drone_cmd_x.value_changed.connect(self._publish_drone_cmd)
         self.drone_cmd_y.value_changed.connect(self._publish_drone_cmd)
