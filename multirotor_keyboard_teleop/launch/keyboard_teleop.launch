@@ -1,0 +1,10 @@
+<launch>
+
+  <arg name='node_params_path' default='$(find multirotor_keyboard_teleop)/config/node_params.yaml'/>
+
+  <group ns='multirotor_keyboard_teleop'>
+    <rosparam file='$(arg node_params_path)' command='load'/>
+    <node pkg='multirotor_keyboard_teleop' name='keyboard_teleop' type='keyboard_teleop_node' output='screen'/>
+  </group>
+
+</launch>

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(multirotor_teleop)
+project(multirotor_keyboard_teleop)
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Build type (default Release)" FORCE)

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
 
-	<name>multirotor_teleop</name>
+	<name>multirotor_keyboard_teleop</name>
 	<version>0.0.0</version>
 	<description>TODO</description>
 	<maintainer email="masa0u0masa1215@gmail.com">Masayoshi Dohi</maintainer>
