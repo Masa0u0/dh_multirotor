@@ -1,0 +1,7 @@
+<launch>
+
+  <group ns='multirotor_gui_teleop'>
+    <node pkg='multirotor_gui_teleop' name='gui_teleop' type='gui_teleop_node.py' output='screen'/>
+  </group>
+
+</launch>
