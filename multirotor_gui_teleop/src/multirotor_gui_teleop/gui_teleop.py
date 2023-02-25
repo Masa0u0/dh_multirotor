@@ -1,4 +1,5 @@
 import os.path as osp
+import rospy
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -27,3 +28,13 @@ class GuiTeleopWidget(QWidget):
 
         self.pose_buttons = PoseButtonsWidget(self)
         self._rows.addWidget(self.pose_buttons)
+
+        self.define_connections()
+        
+        # 接続が完了するまで少し待ってから全ての関節値を発行
+        rospy.sleep(0.5)
+        self.joint_positions.publish()
+    
+    def define_connections(self) -> None:
+        self.joint_positions.define_connections()
+        self.pose_buttons.define_connections()

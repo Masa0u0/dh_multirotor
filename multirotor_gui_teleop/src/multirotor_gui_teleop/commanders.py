@@ -3,12 +3,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .gui_teleop import GuiTeleopWidget
 
+import random
+import rospy
+from typing import List
+from urdf_parser_py.urdf import Robot
+from std_msgs.msg import Float64
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-import rospy
-from urdf_parser_py.urdf import Robot
-from std_msgs.msg import Float64
 
 from dh_rqt_tools.widgets import Slider
 from multirotor_msgs.msg import Command
@@ -44,24 +46,28 @@ class CommandersWidget(QScrollArea):
         x_max = rospy.get_param("~pose_limit/x/max")
         assert x_min <= 0. <= x_max
         self.drone_cmd_x = Commander("multirotor/x", x_min, x_max)
+        self.drone_cmd_x.set_value(0.)
         self._rows.addWidget(self.drone_cmd_x)
 
         y_min = rospy.get_param("~pose_limit/y/min")
         y_max = rospy.get_param("~pose_limit/y/max")
         assert y_min <= 0. <= y_max
         self.drone_cmd_y = Commander("multirotor/y", y_min, y_max)
+        self.drone_cmd_y.set_value(0.)
         self._rows.addWidget(self.drone_cmd_y)
 
         z_min = rospy.get_param("~pose_limit/z/min")
         z_max = rospy.get_param("~pose_limit/z/max")
         assert 0. <= z_min <= z_max
         self.drone_cmd_z = Commander("multirotor/z", z_min, z_max)
+        self.drone_cmd_z.set_value(z_min)
         self._rows.addWidget(self.drone_cmd_z)
 
         yaw_min = rospy.get_param("~pose_limit/yaw/min")
         yaw_max = rospy.get_param("~pose_limit/yaw/max")
         assert yaw_min <= 0. <= yaw_max
         self.drone_cmd_yaw = Commander("multirotor/yaw", yaw_min, yaw_max)
+        self.drone_cmd_yaw.set_value(0.)
         self._rows.addWidget(self.drone_cmd_yaw)
 
         # その他の可動関節
@@ -73,7 +79,7 @@ class CommandersWidget(QScrollArea):
         drone_name = rospy.get_param("/drone_name")
         joint_names = rospy.get_param("/required_joint_names")
         robot = Robot.from_parameter_server("/robot_description")
-        self.joint_cmds = []
+        self.joint_cmds: List[Commander] = []
 
         for joint_name in joint_names:
             joint = robot.joint_map[joint_name]
@@ -94,17 +100,21 @@ class CommandersWidget(QScrollArea):
 
         self._add_dummy_widget()  # 余白を埋めるためのダミーウィジェット
 
+    def define_connections(self) -> None:
         self.drone_cmd_x.value_changed.connect(self._publish_drone_cmd)
         self.drone_cmd_y.value_changed.connect(self._publish_drone_cmd)
         self.drone_cmd_z.value_changed.connect(self._publish_drone_cmd)
         self.drone_cmd_yaw.value_changed.connect(self._publish_drone_cmd)
 
-        rospy.sleep(0.5)  # 接続に少し時間がかかるため，初期値を設定する前に待機する
+        self._main.pose_buttons.random_button.clicked.connect(self._random_event)
+        self._main.pose_buttons.center_button.clicked.connect(self._center_event)
 
-        self.drone_cmd_x.set_value(0.)
-        self.drone_cmd_y.set_value(0.)
-        self.drone_cmd_z.set_value(z_min)
-        self.drone_cmd_yaw.set_value(0.)
+    def publish(self) -> None:
+        """ 現在設定されている値を全て発行する． """
+        self._publish_drone_cmd()
+
+        for joint_cmd in self.joint_cmds:
+            joint_cmd.publish()
 
     @pyqtSlot()
     def _publish_drone_cmd(self) -> None:
@@ -114,6 +124,18 @@ class CommandersWidget(QScrollArea):
         self._drone_cmd.target_yaw_angle = self.drone_cmd_yaw.get_value()
 
         self._drone_cmd_pub.publish(self._drone_cmd)
+
+    @pyqtSlot()
+    def _random_event(self) -> None:
+        """ 全ての関節角をランダム値に設定する． """
+        for joint_cmd in self.joint_cmds:
+            joint_cmd.set_random_value()
+
+    @pyqtSlot()
+    def _center_event(self) -> None:
+        """ 全ての関節角を中央の値に設定する． """
+        for joint_cmd in self.joint_cmds:
+            joint_cmd.set_center_value()
 
     def _add_dummy_widget(self) -> None:
         dummy_widget = QWidget()
@@ -170,14 +192,25 @@ class Commander(QWidget):
         slider_value = self._value_to_slider(value)
         self.slider.setValue(slider_value)
 
+    def set_random_value(self) -> None:
+        value = random.uniform(self._min, self._max)
+        self.set_value(value)
+
+    def set_center_value(self) -> None:
+        value = (self._min + self._max) / 2.
+        self.set_value(value)
+
+    def publish(self) -> None:
+        if self._topic:
+            msg = Float64(data=self.get_value())
+            self._value_pub.publish(msg)
+
     @pyqtSlot()
     def _on_value_changed(self) -> None:
         value = self._slider_to_value()
         self.value.setText(f'{value:.2f}')
         self.value_changed.emit(value)
-
-        if self._topic:
-            self._value_pub.publish(Float64(data=value))
+        self.publish()
 
     def _slider_to_value(self) -> float:
         x = float(self.slider.value())
