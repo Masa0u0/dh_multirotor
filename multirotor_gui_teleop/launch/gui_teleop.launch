@@ -1,6 +1,9 @@
 <launch>
 
+  <arg name='node_params_path' default='$(find multirotor_gui_teleop)/config/node_params.yaml'/>
+
   <group ns='multirotor_gui_teleop'>
+    <rosparam file='$(arg node_params_path)' command='load'/>
     <node pkg='multirotor_gui_teleop' name='gui_teleop' type='gui_teleop_node.py' output='screen'/>
   </group>
 

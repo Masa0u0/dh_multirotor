@@ -1,0 +1,14 @@
+gui_teleop:
+  pose_limit:
+    x:
+      min: -10.
+      max: 10.
+    y:
+      min: -10.
+      max: 10.
+    z:
+      min: 1.
+      max: 10.
+    yaw:
+      min: -3.14
+      max: +3.14
