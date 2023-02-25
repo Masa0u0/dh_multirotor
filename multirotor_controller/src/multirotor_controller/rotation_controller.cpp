@@ -19,7 +19,7 @@ RotationController::RotationController(const Tree& tree)
     c2d_(X_DIM, num_rotors_),
     x_(X_DIM),
     s_(X_DIM),
-    u_(num_rotors_)
+    u_(VectorXd::Zero(num_rotors_))
 {
   getParams();
 

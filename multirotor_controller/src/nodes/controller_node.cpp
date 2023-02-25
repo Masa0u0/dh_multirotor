@@ -142,7 +142,9 @@ void Controller::rotorVelsFromCtrlInput(const vector<double>& u, mav_msgs::Actua
   {
     if (u[i] < -1e-3)
     {
-      ROS_FATAL("The thrust force cannot be negative.");
+      ROS_FATAL_STREAM(
+        "Negative thrust force: "
+        << "u = " << u[i]);
       // TODO: 防御モードに移行
     }
     rotor_vels.angular_velocities[i] = sqrt(max(u[i], 0.) / rotor_props_[i].motor_constant);
