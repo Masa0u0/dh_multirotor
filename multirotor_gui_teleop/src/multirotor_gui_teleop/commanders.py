@@ -71,15 +71,16 @@ class CommandersWidget(QScrollArea):
         self._rows.addWidget(self.drone_cmd_yaw)
 
         # その他の可動関節
-        joint_label = QLabel("Joint Command")
-        joint_label.setFont(QFont("Default", self.LABEL_PSIZE, QFont.Bold))
-        joint_label.setAlignment(Qt.AlignCenter)
-        self._rows.addWidget(joint_label)
-
         drone_name = rospy.get_param("/drone_name")
         joint_names = rospy.get_param("/required_joint_names")
         robot = Robot.from_parameter_server("/robot_description")
         self.joint_cmds: List[Commander] = []
+
+        if len(joint_names) > 0:
+            joint_label = QLabel("Joint Command")
+            joint_label.setFont(QFont("Default", self.LABEL_PSIZE, QFont.Bold))
+            joint_label.setAlignment(Qt.AlignCenter)
+            self._rows.addWidget(joint_label)
 
         for joint_name in joint_names:
             joint = robot.joint_map[joint_name]
