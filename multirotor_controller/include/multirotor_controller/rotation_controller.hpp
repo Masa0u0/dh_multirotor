@@ -37,7 +37,6 @@ private:
   double pred_horizon_;  // 予測区間[sec]
   int Hp_;               // 予測区間の分割数
   int Hu_;               // 制御入力の有効ステップ
-  double weight_scale_;
   std::vector<double> T_refs_;  // 制御変数の誤差の減衰時定数[sec]
   std::vector<double> Q_values_;
   double R_value_;

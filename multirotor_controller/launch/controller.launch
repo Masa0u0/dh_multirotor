@@ -1,12 +1,12 @@
 <launch>
 
   <arg name='drone_properties_path'/>
-  <arg name='node_params_path'/>
+  <arg name='controller_params_path'/>
 
   <rosparam file='$(arg drone_properties_path)' command='load'/>
   
   <group ns='multirotor_controller'>
-    <rosparam file='$(arg node_params_path)' command='load'/>
+    <rosparam file='$(arg controller_params_path)' command='load'/>
 
     <node pkg='multirotor_controller' name='state_estimator_truth' type='state_estimator_truth_node' output='screen'/> <!-- TODO: 状態推定 -->
     <node pkg='multirotor_controller' name='controller' type='controller_node' output='screen'/>

@@ -5,6 +5,8 @@
 
 #include "../../include/multirotor_controller/rotation_controller.hpp"
 
+#define WEIGHT_SCALE 1e-6
+
 using namespace std;
 using namespace Eigen;
 using namespace KDL;
@@ -75,7 +77,6 @@ void RotationController::getParams()
   pred_horizon_ = dh_ros::getParam<double>("~rotation_controller/prediction_horizon");
   Hp_ = dh_ros::getParam<int>("~rotation_controller/prediction_steps");
   Hu_ = dh_ros::getParam<int>("~rotation_controller/input_steps");
-  weight_scale_ = dh_ros::getParam<double>("~rotation_controller/weight_scale");
   T_refs_[ROLL] = dh_ros::getParam<double>("~rotation_controller/decay/rotation/roll");
   T_refs_[PITCH] = dh_ros::getParam<double>("~rotation_controller/decay/rotation/pitch");
   T_refs_[YAW] = dh_ros::getParam<double>("~rotation_controller/decay/rotation/yaw");
@@ -96,7 +97,6 @@ void RotationController::getParams()
 
   ROS_ASSERT(pred_horizon_ > 0.);
   ROS_ASSERT(0 < Hu_ && Hu_ <= Hp_);
-  ROS_ASSERT(weight_scale_ > 0.);
   ROS_ASSERT(dh_std::all_ge(Q_values_, 0.));
   ROS_ASSERT(R_value_ >= 0.);
   ROS_ASSERT(S_value_ > 0.);
@@ -157,7 +157,7 @@ VectorXd RotationController::makeWeight(const vector<double>& values, const vect
   VectorXd scaled_values(dim);
   for (int i = 0; i < dim; ++i)
   {
-    scaled_values(i) = values[i] / (weight_scale_ * pow(scales[i], 2.));
+    scaled_values(i) = values[i] / (WEIGHT_SCALE * pow(scales[i], 2.));
   }
 
   return scaled_values;
