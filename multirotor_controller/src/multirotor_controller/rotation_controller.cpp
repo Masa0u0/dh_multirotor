@@ -5,7 +5,7 @@
 
 #include "../../include/multirotor_controller/rotation_controller.hpp"
 
-#define WEIGHT_SCALE 1e-6
+#define WEIGHT_SCALER 1e+6  // QPの数値エラーを防ぐために重みにかける定数
 
 using namespace std;
 using namespace Eigen;
@@ -15,7 +15,6 @@ RotationController::RotationController(const Tree& tree)
   : num_rotors_(dh_ros::getParam<int>("/num_rotors")),
     rotor_props_(getRotorProperties()),
     T_refs_(X_DIM),
-    Q_values_(X_DIM),
     kdl_model_(tree),
     cont_(tree),
     c2d_(X_DIM, num_rotors_),
@@ -23,17 +22,13 @@ RotationController::RotationController(const Tree& tree)
     s_(X_DIM),
     u_(VectorXd::Zero(num_rotors_)),
     Cz_(MatrixXd::Identity(X_DIM, X_DIM)),
-    R_(num_rotors_),
-    S_(num_rotors_),
     Q_(X_DIM),
+    S_(num_rotors_),
+    R_(num_rotors_),
     E_e_(ctrl::LinearEquation(num_rotors_, 0)),
     F_f_(makeBaseInputCondition()),
     G_g_(ctrl::LinearEquation(X_DIM, 0))
 {
-  getParams();
-
-  dt_ = pred_horizon_ / Hp_;
-  discs_.resize(Hp_, ctrl::LinearDynamics(X_DIM, num_rotors_));
 }
 
 void RotationController::updateInternalDataStructures()
@@ -43,9 +38,20 @@ void RotationController::updateInternalDataStructures()
 
   mass_ = kdl_model_.treeMass();
 
-  updateWeight_R();
-  updateWeight_S();
-  updateWeight_Q();
+  // 動的rosparamの初期値を取得
+  auto pred_horizon = dh_ros::getParam<double>("~prediction_horizon");
+  auto pred_steps = dh_ros::getParam<int>("~prediction_steps");
+  auto rot_decay = dh_ros::getParam<double>("~rotation_decay");
+  auto angvel_decay = dh_ros::getParam<double>("~angular_velocity_decay");
+  auto rot_weight = dh_ros::getParam<double>("~rotation_weight");
+  auto angvel_weight = dh_ros::getParam<double>("~angular_velocity_weight");
+  auto thrust_weight = dh_ros::getParam<int>("~thrust_force_weight");
+  auto thrust_rate_weight = dh_ros::getParam<int>("~thrust_force_rate_weight");
+
+  // 内部変数を更新
+  reconfigure(
+    pred_horizon, pred_steps, rot_decay, angvel_decay, rot_weight, angvel_weight, thrust_weight,
+    thrust_rate_weight);
 }
 
 void RotationController::update(
@@ -82,8 +88,8 @@ void RotationController::reconfigure(
   double angvel_decay,
   double rot_weight,
   double angvel_weight,
-  int input_weight,
-  int input_rate_weight)
+  int thrust_weight,
+  int thrust_rate_weight)
 {
   ROS_ASSERT(pred_horizon > 0.);
   ROS_ASSERT(pred_steps > 0);
@@ -92,44 +98,16 @@ void RotationController::reconfigure(
   ROS_ASSERT(rot_weight > 0.);
   ROS_ASSERT(angvel_weight > 0.);
 
-  pred_horizon_ = pred_horizon;
+  dt_ = pred_horizon / pred_steps;
   Hp_ = pred_steps;
   T_refs_[ROLL] = T_refs_[PITCH] = T_refs_[YAW] = rot_decay;
   T_refs_[ANGVEL_X] = T_refs_[ANGVEL_Y] = T_refs_[ANGVEL_Z] = angvel_decay;
-  Q_values_[ROLL] = Q_values_[PITCH] = Q_values_[YAW] = rot_decay;
-  Q_values_[ANGVEL_X] = Q_values_[ANGVEL_Y] = Q_values_[ANGVEL_Z] = angvel_decay;
-  S_value_ = pow(10, input_weight);
-  R_value_ = pow(10, input_rate_weight);
 
-  dt_ = pred_horizon / pred_steps;
+  discs_.resize(pred_steps, ctrl::LinearDynamics(X_DIM, num_rotors_));
 
-  updateWeight_R();
-  updateWeight_S();
-  updateWeight_Q();
-}
-
-void RotationController::getParams()
-{
-  pred_horizon_ = dh_ros::getParam<double>("~prediction_horizon");
-  Hp_ = dh_ros::getParam<int>("~prediction_steps");
-  T_refs_[ROLL] = dh_ros::getParam<double>("~rotation_decay");
-  T_refs_[PITCH] = dh_ros::getParam<double>("~rotation_decay");
-  T_refs_[YAW] = dh_ros::getParam<double>("~rotation_decay");
-  T_refs_[ANGVEL_X] = dh_ros::getParam<double>("~angular_velocity_decay");
-  T_refs_[ANGVEL_Y] = dh_ros::getParam<double>("~angular_velocity_decay");
-  T_refs_[ANGVEL_Z] = dh_ros::getParam<double>("~angular_velocity_decay");
-  Q_values_[ROLL] = dh_ros::getParam<double>("~rotation_weight");
-  Q_values_[PITCH] = dh_ros::getParam<double>("~rotation_weight");
-  Q_values_[YAW] = dh_ros::getParam<double>("~rotation_weight");
-  Q_values_[ANGVEL_X] = dh_ros::getParam<double>("~angular_velocity_weight");
-  Q_values_[ANGVEL_Y] = dh_ros::getParam<double>("~angular_velocity_weight");
-  Q_values_[ANGVEL_Z] = dh_ros::getParam<double>("~angular_velocity_weight");
-  S_value_ = pow(10, dh_ros::getParam<double>("~thrust_force_weight"));
-  R_value_ = pow(10, dh_ros::getParam<double>("~thrust_force_rate_weight"));
-
-  ROS_ASSERT(pred_horizon_ > 0.);
-  ROS_ASSERT(Hp_ > 0);
-  ROS_ASSERT(dh_std::all_ge(Q_values_, 0.));
+  updateWeight_Q(rot_weight, angvel_weight);
+  updateWeight_S(thrust_weight);
+  updateWeight_R(thrust_rate_weight, dt_);
 }
 
 void RotationController::updateDynamics(
@@ -170,49 +148,33 @@ void RotationController::updateS(
   s_ << roll_des, pitch_des, yaw_des, 0., 0., 0.;
 }
 
-void RotationController::updateWeight(
-  const vector<double>& values,
-  const vector<double>& scales,
-  VectorXd& weight)
+void RotationController::updateWeight_Q(double rot_weight, double angvel_weight)
 {
-  uint32_t dim = weight.size();
+  // 姿勢と角速度のスケールは機体によって変化しないため，Qはスケーリングしない
+  Q_(ROLL) = Q_(PITCH) = Q_(YAW) = rot_weight * WEIGHT_SCALER;
+  Q_(ANGVEL_X) = Q_(ANGVEL_Y) = Q_(ANGVEL_Z) = angvel_weight * WEIGHT_SCALER;
+}
 
-  ROS_ASSERT(values.size() == dim);
-  ROS_ASSERT(scales.size() == dim);
-  ROS_ASSERT(dh_std::all_ge(values, 0.));
-  ROS_ASSERT(dh_std::all_gt(scales, 0.));
+void RotationController::updateWeight_S(int thrust_weight)
+{
+  double u_scale = mass_ * GRAVITY;
+  double S_value = pow(10, thrust_weight) / sqr(u_scale) * WEIGHT_SCALER;
 
-  // 重みをスケーリング
-  for (int i = 0; i < dim; ++i)
+  for (uint32_t i = 0; i < num_rotors_; ++i)
   {
-    weight(i) = values[i] / (WEIGHT_SCALE * pow(scales[i], 2.));
+    S_(i) = S_value;
   }
 }
 
-void RotationController::updateWeight_R()
+void RotationController::updateWeight_R(int thrust_rate_weight, double dt)
 {
-  double u_scale = mass_ * GRAVITY;
-  double delta_u_scale = u_scale * dt_;
-  vector<double> delta_u_scales(num_rotors_, delta_u_scale);
-  vector<double> R_values(num_rotors_, R_value_);
-  updateWeight(R_values, delta_u_scales, R_);
-}
+  double delta_u_scale = mass_ * GRAVITY * dt;
+  double R_value = pow(10, thrust_rate_weight) / sqr(delta_u_scale) * WEIGHT_SCALER;
 
-void RotationController::updateWeight_S()
-{
-  double u_scale = mass_ * GRAVITY;
-  vector<double> u_scales(num_rotors_, u_scale);
-  vector<double> S_values(num_rotors_, S_value_);
-  updateWeight(S_values, u_scales, S_);
-}
-
-void RotationController::updateWeight_Q()
-{
-  double scale_euler = PI;
-  double scale_angvel = PI;
-  vector<double> z_scales{ scale_euler,  scale_euler,  scale_euler,
-                           scale_angvel, scale_angvel, scale_angvel };
-  updateWeight(Q_values_, z_scales, Q_);
+  for (uint32_t i = 0; i < num_rotors_; ++i)
+  {
+    R_(i) = R_value;
+  }
 }
 
 ctrl::LinearEquation RotationController::makeBaseInputCondition()

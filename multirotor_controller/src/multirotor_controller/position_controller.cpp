@@ -7,8 +7,9 @@
 
 PositionController::PositionController()
 {
-  getParams();
-  reconfigure(wn_, zeta_);
+  double natural_freq = dh_ros::getParam<double>("~natural_frequency");
+  double damp_ratio = dh_ros::getParam<double>("~damping_ratio");
+  reconfigure(natural_freq, damp_ratio);
 }
 
 void PositionController::update(
@@ -28,10 +29,4 @@ void PositionController::reconfigure(double natural_freq, double damp_ratio)
 
   kp_ = dh_std::sqr(natural_freq);
   kd_ = 2. * damp_ratio * natural_freq;
-}
-
-void PositionController::getParams()
-{
-  wn_ = dh_ros::getParam<double>("~natural_frequency");
-  zeta_ = dh_ros::getParam<double>("~damping_ratio");
 }

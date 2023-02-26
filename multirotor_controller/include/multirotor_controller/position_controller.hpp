@@ -17,12 +17,6 @@ public:
   void reconfigure(double natural_freq, double damp_ratio);
 
 private:
-  // rosparam
-  double wn_;
-  double zeta_;
-
   double kp_;
   double kd_;
-
-  void getParams();
 };
