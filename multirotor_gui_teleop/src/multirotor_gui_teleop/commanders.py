@@ -172,6 +172,7 @@ class Commander(QWidget):
         self.value.setAlignment(Qt.AlignRight)
         self.value.setFont(font)
         self.value.setReadOnly(True)
+        self.value.setFocusPolicy(Qt.NoFocus)
         self._cols.addWidget(self.value)
 
         self.slider = Slider(Qt.Horizontal)
