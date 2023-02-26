@@ -13,6 +13,8 @@ public:
     const KDL::Vector& vel,
     const KDL::Vector& vel_des,
     KDL::Vector& acc_out);
+  
+  void reconfigure(double natural_freq, double damp_ratio);
 
 private:
   // rosparam

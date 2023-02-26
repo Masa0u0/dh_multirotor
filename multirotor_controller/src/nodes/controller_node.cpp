@@ -1,4 +1,5 @@
 #include <kdl_parser/kdl_parser.hpp>
+#include <dynamic_reconfigure/server.h>
 #include <mav_msgs/Actuators.h>
 #include <sensor_msgs/JointState.h>
 
@@ -14,6 +15,7 @@
 
 #include <multirotor_msgs/Command.h>
 #include <multirotor_msgs/ControllerFeedback.h>
+#include <multirotor_controller/ControllerConfig.h>
 
 #include "../../include/multirotor_controller/position_controller.hpp"
 #include "../../include/multirotor_controller/acceleration_controller.hpp"
@@ -29,6 +31,8 @@ using namespace KDL;
  */
 class Controller
 {
+  using ConfigServer = dynamic_reconfigure::Server<multirotor_controller::ControllerConfig>;
+
 public:
   explicit Controller(ros::NodeHandle& nh);
 
@@ -36,7 +40,7 @@ private:
   Tree tree_;
   TreeKDLModel kdl_model_;
 
-  const int num_rotors_;
+  const uint32_t num_rotors_;
   const vector<string> required_joints_;  // プロペラ以外の可動関節の名前のリスト
   const bool transformable_;              // プロペラ以外の可動関節を持つか否か
   const vector<RotorProperty> rotor_props_;
@@ -61,6 +65,9 @@ private:
   ros::Subscriber js_sub_;
   ros::Subscriber cmd_sub_;
 
+  // Dynamic Reconfigure
+  ConfigServer server_;
+
   void runOnce();
   void rotorVelsFromCtrlInput(const vector<double>& u, mav_msgs::Actuators& rotor_vels);
   bool allSubscribed();
@@ -68,6 +75,8 @@ private:
   void bsCb(const dh_kdl_msgs::PoseVel& msg);
   void jsCb(const sensor_msgs::JointState& msg);
   void commandCb(const multirotor_msgs::Command& msg);
+
+  void dynamicReconfigureCb(const multirotor_controller::ControllerConfig& cfg, uint32_t level);
 };
 
 Controller::Controller(ros::NodeHandle& nh)
@@ -108,6 +117,10 @@ Controller::Controller(ros::NodeHandle& nh)
     js_sub_ = nh.subscribe("/" + drone_name + "/joint_states", 1, &Controller::jsCb, this);
   }
   cmd_sub_ = nh.subscribe(ns + "/command", 1, &Controller::commandCb, this);
+
+  // Dynamic Reconfigure
+  ConfigServer::CallbackType f = boost::bind(&Controller::dynamicReconfigureCb, this, _1, _2);
+  server_.setCallback(f);
 }
 
 void Controller::runOnce()
@@ -206,6 +219,17 @@ void Controller::commandCb(const multirotor_msgs::Command& msg)
 {
   cmd_ = msg;
   cmd_subscribed_ = true;
+}
+
+void Controller::dynamicReconfigureCb(
+  const multirotor_controller::ControllerConfig& cfg,
+  uint32_t level)
+{
+  pos_controller_.reconfigure(cfg.natural_frequency, cfg.damping_ratio);
+  rot_controller_.reconfigure(
+    cfg.prediction_horizon, cfg.prediction_steps, cfg.rotation_decay, cfg.angular_velocity_decay,
+    cfg.rotation_weight, cfg.angular_velocity_weight, cfg.thrust_force_weight,
+    cfg.thrust_force_rate_weight);
 }
 
 int main(int argc, char** argv)

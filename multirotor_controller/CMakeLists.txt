@@ -24,21 +24,10 @@ find_package(catkin REQUIRED COMPONENTS
 	kdl_msgs
 	orocos_kdl
 	roscpp
+	dynamic_reconfigure
 )
 
-# catkin_python_setup()
-
-# file(GLOB_RECURSE MSG_FILES RELATIVE ${PROJECT_SOURCE_DIR}/msg msg/[^.]*.msg)
-# add_message_files(FILES ${MSG_FILES})
-# file(GLOB_RECURSE SRV_FILES RELATIVE ${PROJECT_SOURCE_DIR}/srv srv/[^.]*.srv)
-# add_service_files(FILES ${SRV_FILES})
-# file(GLOB_RECURSE ACTION_FILES RELATIVE ${PROJECT_SOURCE_DIR}/action action/[^.]*.action)
-# add_action_files(FILES ${ACTION_FILES})
-
-# generate_messages(DEPENDENCIES
-# 	kdl_msgs
-# 	actionlib_msgs
-# )
+generate_dynamic_reconfigure_options(cfg/Controller.cfg) # Dynamic Reconfigureの設定
 
 catkin_package(
 	INCLUDE_DIRS include
@@ -50,14 +39,13 @@ include_directories(${catkin_INCLUDE_DIRS})
 # ライブラリを作成
 file(GLOB_RECURSE LIB_CPP_FILES RELATIVE ${PROJECT_SOURCE_DIR} src/${PROJECT_NAME}/[^.]*.cpp)
 add_library(${PROJECT_NAME} STATIC ${LIB_CPP_FILES})
-# add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} /usr/local/lib/libquadprog.a)
 
 # ノードの実行ファイルを作成
-file(GLOB_RECURSE NODE_FILES RELATIVE ${PROJECT_SOURCE_DIR} src/nodes/[^.]*.cpp) # src内のノードへのパスを取得
+file(GLOB_RECURSE NODE_FILES RELATIVE ${PROJECT_SOURCE_DIR} src/nodes/[^.]*.cpp)
 foreach(FILE IN LISTS NODE_FILES)
-	get_filename_component(NODE_NAME ${FILE} NAME_WE) # 拡張子を除いたファイル名を取得
-	add_executable(${NODE_NAME} ${FILE}) # コンパイル
-	# add_dependencies(${NODE_NAME} ${PROJECT_NAME}_generate_messages_cpp)
-	target_link_libraries(${NODE_NAME} ${catkin_LIBRARIES} ${PROJECT_NAME}) # リンク
+	get_filename_component(NODE_NAME ${FILE} NAME_WE)
+	add_executable(${NODE_NAME} ${FILE})
+	add_dependencies(${NODE_NAME} ${PROJECT_NAME}_gencfg) # Dynamic Reconfigureへの依存
+	target_link_libraries(${NODE_NAME} ${catkin_LIBRARIES} ${PROJECT_NAME})
 endforeach()
