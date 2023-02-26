@@ -16,7 +16,7 @@ public:
 
   void update(
     const KDL::Vector& acc_des,
-    double yaw_des,
+    const double& yaw_des,
     double& U_out,
     double& roll_out,
     double& pitch_out);
