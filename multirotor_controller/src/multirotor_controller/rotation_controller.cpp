@@ -64,7 +64,7 @@ void RotationController::update(
   vector<double>& u_opt)
 {
   ROS_ASSERT(q.rows() == kdl_model_.getNrOfJoints());
-  ROS_ASSERT(U > 0.);
+  ROS_ASSERT(U >= 0.);
   ROS_ASSERT(u_opt.size() == num_rotors_);
 
   const auto& rpy = bs.pose.rpy;
