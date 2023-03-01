@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <Eigen/Core>
 #include <eigen_conversions/eigen_kdl.h>
+#include <kdl/frames_io.hpp>
 
 #include <dh_ros_tools/rosparam.hpp>
 #include <dh_kdl/util.hpp>
@@ -44,6 +45,7 @@ void MultiRotorDynamics::updateA(const double& roll, const double& pitch)
 void MultiRotorDynamics::updateB(const JntArray& q)
 {
   kdl_model_.treeInertia(q, P_base_cog_, I_cog_kdl_);
+  // cout << P_base_cog_ << endl;
   tf::rotInertiaKDLToEigen(I_cog_kdl_, I_cog_eigen_);
   I_cog_eigen_.computeInverseWithCheck(I_cog_inv_, invertible_);
   ROS_ASSERT(invertible_);
