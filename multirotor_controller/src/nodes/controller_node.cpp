@@ -202,9 +202,10 @@ void Controller::jsCb(const sensor_msgs::JointState& msg)
   {
     try
     {
-      const auto idx = dh_std::findIndex(msg.name, jnt_name);  // msg内でのインデックス
-      const auto& jnt_pos = msg.position[idx];
-      q_(idx) = jnt_pos;
+      const auto msg_idx = dh_std::findIndex(msg.name, jnt_name);  // msg内でのインデックス
+      const auto& jnt_pos = msg.position[msg_idx];
+      const auto& kdl_idx = kdl_model_.jointIndex(jnt_name);  // Tree内でのインデックス
+      q_(kdl_idx) = jnt_pos;
     }
     catch (const exception& e)
     {
