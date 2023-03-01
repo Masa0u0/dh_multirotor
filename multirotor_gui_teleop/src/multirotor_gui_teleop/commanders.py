@@ -107,9 +107,6 @@ class CommandersWidget(QScrollArea):
         self.drone_cmd_z.value_changed.connect(self._publish_drone_cmd)
         self.drone_cmd_yaw.value_changed.connect(self._publish_drone_cmd)
 
-        self._main.pose_buttons.random_button.clicked.connect(self._random_event)
-        self._main.pose_buttons.center_button.clicked.connect(self._center_event)
-
     def publish(self) -> None:
         """ 現在設定されている値を全て発行する． """
         self._publish_drone_cmd()
@@ -125,18 +122,6 @@ class CommandersWidget(QScrollArea):
         self._drone_cmd.target_yaw_angle = self.drone_cmd_yaw.get_value()
 
         self._drone_cmd_pub.publish(self._drone_cmd)
-
-    @pyqtSlot()
-    def _random_event(self) -> None:
-        """ 全ての関節角をランダム値に設定する． """
-        for joint_cmd in self.joint_cmds:
-            joint_cmd.set_random_value()
-
-    @pyqtSlot()
-    def _center_event(self) -> None:
-        """ 全ての関節角を中央の値に設定する． """
-        for joint_cmd in self.joint_cmds:
-            joint_cmd.set_center_value()
 
     def _add_dummy_widget(self) -> None:
         dummy_widget = QWidget()

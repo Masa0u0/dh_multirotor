@@ -23,8 +23,8 @@ class GuiTeleopWidget(QWidget):
         self._rows = QVBoxLayout()
         self.setLayout(self._rows)
 
-        self.joint_positions = CommandersWidget(self)
-        self._rows.addWidget(self.joint_positions)
+        self.commanders = CommandersWidget(self)
+        self._rows.addWidget(self.commanders)
 
         self.pose_buttons = PoseButtonsWidget(self)
         self._rows.addWidget(self.pose_buttons)
@@ -33,8 +33,8 @@ class GuiTeleopWidget(QWidget):
         
         # 接続が完了するまで少し待ってから全ての関節値を発行
         rospy.sleep(0.5)
-        self.joint_positions.publish()
+        self.commanders.publish()
     
     def define_connections(self) -> None:
-        self.joint_positions.define_connections()
+        self.commanders.define_connections()
         self.pose_buttons.define_connections()
