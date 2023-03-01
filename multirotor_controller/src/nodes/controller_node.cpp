@@ -125,18 +125,20 @@ Controller::Controller(ros::NodeHandle& nh)
 
 void Controller::runOnce()
 {
+  auto& pos_des = feedback_.desired_position;
   auto& acc_des = feedback_.desired_acceleration;
-  auto& U = feedback_.thrust_force_sum;
   auto& roll_des = feedback_.desired_roll;
   auto& pitch_des = feedback_.desired_pitch;
   auto& yaw_des = feedback_.desired_yaw;
+  auto& U = feedback_.thrust_force_sum;
   auto& u = feedback_.thrust_forces;
 
-  yaw_des = cmd_.target_yaw_angle;  // ヨー角はコマンドをそのまま目標値にする
+  // 位置とヨー角の目標値はコマンドどおり
+  pos_des = cmd_.target_position;
+  yaw_des = cmd_.target_yaw_angle;
 
   // stopwatch_.start();
-  pos_controller_.update(
-    bs_.pose.pos, cmd_.target_position, bs_.twist.vel, Vector::Zero(), acc_des);
+  pos_controller_.update(bs_.pose.pos, pos_des, bs_.twist.vel, Vector::Zero(), acc_des);
   acc_controller_.update(acc_des, yaw_des, U, roll_des, pitch_des);
   rot_controller_.update(bs_, q_, U, roll_des, pitch_des, yaw_des, u);
   // stopwatch_.stop();

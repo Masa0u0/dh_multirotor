@@ -1,6 +1,7 @@
+kdl_msgs/Vector desired_position
 kdl_msgs/Vector desired_acceleration
-float64 thrust_force_sum
 float64 desired_roll
 float64 desired_pitch
 float64 desired_yaw
+float64 thrust_force_sum
 float64[] thrust_forces
