@@ -33,3 +33,9 @@
   uri: git@github.com:Masa0u0/dh_std_tools.git,
   version: main,
 }
+
+- git: {
+  local-name: state_estimation_eskf,
+  uri: git@github.com:Masa0u0/state_estimation_eskf.git,
+  version: main,
+}
