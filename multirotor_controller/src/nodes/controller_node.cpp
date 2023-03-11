@@ -110,13 +110,14 @@ Controller::Controller(ros::NodeHandle& nh)
   // PubSub
   rotor_vels_pub_ =
     nh.advertise<mav_msgs::Actuators>("/" + drone_name + "/command/motor_speed", 1, false);
-  feedback_pub_ = nh.advertise<multirotor_msgs::ControllerFeedback>(ns + "/feedback", 1, false);
+  feedback_pub_ =
+    nh.advertise<multirotor_msgs::ControllerFeedback>("/multirotor_controller/feedback", 1, false);
   bs_sub_ = nh.subscribe("/" + drone_name + "/base_state", 1, &Controller::bsCb, this);
   if (transformable_)
   {
     js_sub_ = nh.subscribe("/" + drone_name + "/joint_states", 1, &Controller::jsCb, this);
   }
-  cmd_sub_ = nh.subscribe(ns + "/command", 1, &Controller::commandCb, this);
+  cmd_sub_ = nh.subscribe("/multirotor_controller/command", 1, &Controller::commandCb, this);
 
   // Dynamic Reconfigure
   ConfigServer::CallbackType f = boost::bind(&Controller::dynamicReconfigureCb, this, _1, _2);
@@ -237,7 +238,7 @@ void Controller::dynamicReconfigureCb(
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "controller");
+  ros::init(argc, argv, "multirotor_controller");
   ros::NodeHandle nh;
   Controller node(nh);
   ros::spin();
