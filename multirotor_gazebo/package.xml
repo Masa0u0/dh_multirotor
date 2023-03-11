@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
 
-	<name>multirotor_controller</name>
+	<name>multirotor_gazebo</name>
 	<version>0.0.0</version>
 	<description>TODO</description>
 	<maintainer email="masa0u0masa1215@gmail.com">Masayoshi Dohi</maintainer>
@@ -10,14 +10,10 @@
 	<buildtool_depend>catkin</buildtool_depend>
 
 	<depend>roscpp</depend>
-	<depend>mav_msgs</depend>
+	<depend>kdl_msgs</depend>
 
 	<depend>dh_kdl</depend>
-	<depend>dh_linear_control</depend>
 	<depend>dh_ros_tools</depend>
-	<depend>dh_eigen_tools</depend>
 	<depend>dh_std_tools</depend>
-
-	<depend>multirotor_msgs</depend>
 
 </package>

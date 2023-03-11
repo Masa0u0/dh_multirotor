@@ -1,0 +1,14 @@
+<launch>
+
+  <arg name='drone_properties_path'/>
+  <arg name='controller_params_path'/>
+  <arg name='observer_params_path'/>
+  
+
+  <rosparam file='$(arg drone_properties_path)' command='load'/>
+  <rosparam file='$(arg controller_params_path)' command='load'/>
+  <rosparam file='$(arg observer_params_path)' command='load'/>
+
+
+
+</launch>
