@@ -111,7 +111,7 @@ Controller::Controller(ros::NodeHandle& nh)
   rotor_vels_pub_ =
     nh.advertise<mav_msgs::Actuators>("/" + drone_name + "/command/motor_speed", 1, false);
   feedback_pub_ = nh.advertise<multirotor_msgs::ControllerFeedback>(ns + "/feedback", 1, false);
-  bs_sub_ = nh.subscribe(ns + "/base_state", 1, &Controller::bsCb, this);
+  bs_sub_ = nh.subscribe("/" + drone_name + "/base_state", 1, &Controller::bsCb, this);
   if (transformable_)
   {
     js_sub_ = nh.subscribe("/" + drone_name + "/joint_states", 1, &Controller::jsCb, this);
