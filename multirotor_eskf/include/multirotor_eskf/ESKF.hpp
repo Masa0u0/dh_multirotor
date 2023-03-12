@@ -32,62 +32,62 @@ public:
   // takes as input the  variance of the acceleration and gyro, where _n is the measurement noise,
   // and _w is the pertibations of the system.
   ESKF(
-    Eigen::Vector3f a_gravity,
-    const Eigen::Matrix<float, STATE_SIZE, 1>& initialState,
-    const Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE>& initalP,
-    float var_acc,
-    float var_omega,
-    float var_acc_bias,
-    float var_omega_bias,
+    Eigen::Vector3d a_gravity,
+    const Eigen::Matrix<double, STATE_SIZE, 1>& initialState,
+    const Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& initalP,
+    double var_acc,
+    double var_omega,
+    double var_acc_bias,
+    double var_omega_bias,
     int delayHandling,
     int bufferL);
 
   // Concatenates relevant vectors to one large vector.
-  static Eigen::Matrix<float, STATE_SIZE, 1> makeState(
-    const Eigen::Vector3f& p,
-    const Eigen::Vector3f& v,
-    const Eigen::Quaternionf& q,
-    const Eigen::Vector3f& a_b,
-    const Eigen::Vector3f& omega_b);
+  static Eigen::Matrix<double, STATE_SIZE, 1> makeState(
+    const Eigen::Vector3d& p,
+    const Eigen::Vector3d& v,
+    const Eigen::Quaterniond& q,
+    const Eigen::Vector3d& a_b,
+    const Eigen::Vector3d& omega_b);
   // Inserts relevant parts of the block-diagonal of the P matrix
-  static Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE> makeP(
-    const Eigen::Matrix3f& cov_pos,
-    const Eigen::Matrix3f& cov_vel,
-    const Eigen::Matrix3f& cov_dtheta,
-    const Eigen::Matrix3f& cov_a_b,
-    const Eigen::Matrix3f& cov_omega_b);
+  static Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE> makeP(
+    const Eigen::Matrix3d& cov_pos,
+    const Eigen::Matrix3d& cov_vel,
+    const Eigen::Matrix3d& cov_dtheta,
+    const Eigen::Matrix3d& cov_a_b,
+    const Eigen::Matrix3d& cov_omega_b);
 
   // The quaternion convention in the document is "Hamilton" convention.
   // Eigen has a different order of components, so we need conversion
-  static Eigen::Quaternionf quatFromHamilton(const Eigen::Vector4f& qHam);
-  static Eigen::Vector4f quatToHamilton(const Eigen::Quaternionf& q);
-  static Eigen::Matrix3f rotVecToMat(const Eigen::Vector3f& in);
-  static Eigen::Quaternionf rotVecToQuat(const Eigen::Vector3f& in);
-  static Eigen::Vector3f quatToRotVec(const Eigen::Quaternionf& q);
-  static Eigen::Matrix3f getSkew(const Eigen::Vector3f& in);
+  static Eigen::Quaterniond quatFromHamilton(const Eigen::Vector4d& qHam);
+  static Eigen::Vector4d quatToHamilton(const Eigen::Quaterniond& q);
+  static Eigen::Matrix3d rotVecToMat(const Eigen::Vector3d& in);
+  static Eigen::Quaterniond rotVecToQuat(const Eigen::Vector3d& in);
+  static Eigen::Vector3d quatToRotVec(const Eigen::Quaterniond& q);
+  static Eigen::Matrix3d getSkew(const Eigen::Vector3d& in);
 
   // Acessors of nominal state
-  inline Eigen::Vector3f getPos()
+  inline Eigen::Vector3d getPos()
   {
     return nominalState_.block<3, 1>(POS_IDX, 0);
   }
-  inline Eigen::Vector3f getVel()
+  inline Eigen::Vector3d getVel()
   {
     return nominalState_.block<3, 1>(VEL_IDX, 0);
   }
-  inline Eigen::Vector4f getQuatVector()
+  inline Eigen::Vector4d getQuatVector()
   {
     return nominalState_.block<4, 1>(QUAT_IDX, 0);
   }
-  inline Eigen::Quaternionf getQuat()
+  inline Eigen::Quaterniond getQuat()
   {
     return quatFromHamilton(getQuatVector());
   }
-  inline Eigen::Vector3f getAccelBias()
+  inline Eigen::Vector3d getAccelBias()
   {
     return nominalState_.block<3, 1>(AB_IDX, 0);
   }
-  inline Eigen::Vector3f getGyroBias()
+  inline Eigen::Vector3d getGyroBias()
   {
     return nominalState_.block<3, 1>(GB_IDX, 0);
   }
@@ -95,16 +95,16 @@ public:
   // Called when there is a new measurment from the IMU.
   // dt is the integration time of this sample, nominally the IMU sample period
   void predictIMU(
-    const Eigen::Vector3f& a_m,
-    const Eigen::Vector3f& omega_m,
-    const float dt,
+    const Eigen::Vector3d& a_m,
+    const Eigen::Vector3d& omega_m,
+    const double dt,
     lTime stamp);
 
   // Called when there is a new measurment from an absolute position reference.
   // Note that this has no body offset, i.e. it assumes exact observation of the center of the IMU.
   void measurePos(
-    const Eigen::Vector3f& pos_meas,
-    const Eigen::Matrix3f& pos_covariance,
+    const Eigen::Vector3d& pos_meas,
+    const Eigen::Matrix3d& pos_covariance,
     lTime stamp,
     lTime now);
 
@@ -112,18 +112,18 @@ public:
   // The measurement is with respect to some location on the body that is not at the IMU center in
   // general. pos_ref_body should specify the reference location in the body frame. For example,
   // this would be the location of the GPS antenna on the body. NOT YET IMPLEMENTED void
-  // measurePosWithOffset(Eigen::Vector3f pos_meas, Matrix3f pos_covariance,
-  //        Eigen::Vector3f pos_ref_body);
+  // measurePosWithOffset(Eigen::Vector3d pos_meas, Matrix3d pos_covariance,
+  //        Eigen::Vector3d pos_ref_body);
 
   // Called when there is a new measurment from an absolute orientation reference.
   // The uncertianty is represented as the covariance of a rotation vector in the body frame
   void measureQuat(
-    const Eigen::Quaternionf& q_meas,
-    const Eigen::Matrix3f& theta_covariance,
+    const Eigen::Quaterniond& q_meas,
+    const Eigen::Matrix3d& theta_covariance,
     lTime stamp,
     lTime now);
 
-  Eigen::Matrix3f getDCM();
+  Eigen::Matrix3d getDCM();
 
   enum delayTypes
   {
@@ -139,24 +139,24 @@ public:
   };
   struct imuMeasurement
   {
-    Eigen::Vector3f acc;
-    Eigen::Vector3f gyro;
+    Eigen::Vector3d acc;
+    Eigen::Vector3d gyro;
     lTime time;
   };
 
 private:
-  Eigen::Matrix<float, 4, 3> getQ_dtheta();  // eqn 280, page 62
+  Eigen::Matrix<double, 4, 3> getQ_dtheta();  // eqn 280, page 62
   void update_3D(
-    const Eigen::Vector3f& delta_measurement,
-    const Eigen::Matrix3f& meas_covariance,
-    const Eigen::Matrix<float, 3, dSTATE_SIZE>& H,
+    const Eigen::Vector3d& delta_measurement,
+    const Eigen::Matrix3d& meas_covariance,
+    const Eigen::Matrix<double, 3, dSTATE_SIZE>& H,
     lTime stamp,
     lTime now);
-  void injectErrorState(const Eigen::Matrix<float, dSTATE_SIZE, 1>& error_state);
+  void injectErrorState(const Eigen::Matrix<double, dSTATE_SIZE, 1>& error_state);
 
   // get best time from history of state
   int getClosestTime(
-    std::vector<std::pair<lTime, Eigen::Matrix<float, STATE_SIZE, 1>>>* ptr,
+    std::vector<std::pair<lTime, Eigen::Matrix<double, STATE_SIZE, 1>>>* ptr,
     lTime stamp);
 
   // get best time from history of imu
@@ -164,30 +164,30 @@ private:
   imuMeasurement getAverageIMU(lTime stamp);
 
   // IMU Noise values, used in prediction
-  float var_acc_;
-  float var_omega_;
-  float var_acc_bias_;
-  float var_omega_bias_;
+  double var_acc_;
+  double var_omega_;
+  double var_acc_bias_;
+  double var_omega_bias_;
   // Acceleration due to gravity in global frame
-  Eigen::Vector3f a_gravity_;  // [m/s^2]
+  Eigen::Vector3d a_gravity_;  // [m/s^2]
   // State vector of the filter
-  Eigen::Matrix<float, STATE_SIZE, 1> nominalState_;
+  Eigen::Matrix<double, STATE_SIZE, 1> nominalState_;
   // Covariance of the (error) state
-  Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE> P_;
+  Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE> P_;
   // Jacobian of the state transition: page 59, eqn 269
   // Note that we precompute the static parts in the constructor,
   // and update the dynamic parts in the predict function
-  Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE> F_x_;
+  Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE> F_x_;
 
   int delayHandling_;
   int bufferL_;
   int recentPtr;
   // pointers to structures that are allocated only after choosing a time delay handling method.
-  std::vector<std::pair<lTime, Eigen::Matrix<float, STATE_SIZE, 1>>>* stateHistoryPtr_;
-  std::vector<std::pair<lTime, Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE>>>* PHistoryPtr_;
+  std::vector<std::pair<lTime, Eigen::Matrix<double, STATE_SIZE, 1>>>* stateHistoryPtr_;
+  std::vector<std::pair<lTime, Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>>>* PHistoryPtr_;
   std::vector<imuMeasurement>* imuHistoryPtr_;
   imuMeasurement lastImu_;
   lTime firstMeasTime;
   lTime lastMeasurement;
-  Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE>* Mptr;
+  Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>* Mptr;
 };

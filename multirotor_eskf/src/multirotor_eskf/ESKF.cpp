@@ -2,20 +2,20 @@
 #include "../../include/multirotor_eskf/unrolledFPFt.hpp"
 
 #define SQ(x) (x * x)
-#define I_3 (Matrix3f::Identity())
-#define I_dx (Matrix<float, dSTATE_SIZE, dSTATE_SIZE>::Identity())
+#define I_3 (Matrix3d::Identity())
+#define I_dx (Matrix<double, dSTATE_SIZE, dSTATE_SIZE>::Identity())
 
 using namespace Eigen;
 using namespace std;
 
 ESKF::ESKF(
-  Vector3f a_gravity,
-  const Matrix<float, STATE_SIZE, 1>& initialState,
-  const Matrix<float, dSTATE_SIZE, dSTATE_SIZE>& initalP,
-  float var_acc,
-  float var_omega,
-  float var_acc_bias,
-  float var_omega_bias,
+  Vector3d a_gravity,
+  const Matrix<double, STATE_SIZE, 1>& initialState,
+  const Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& initalP,
+  double var_acc,
+  double var_omega,
+  double var_acc_bias,
+  double var_omega_bias,
   int delayHandling,
   int bufferL)
   : var_acc_(var_acc),
@@ -50,23 +50,23 @@ ESKF::ESKF(
   {
     // init circular buffer for IMU
     imuHistoryPtr_ = new vector<imuMeasurement>(bufferL_);
-    PHistoryPtr_ = new vector<pair<lTime, Matrix<float, dSTATE_SIZE, dSTATE_SIZE>>>(bufferL);
+    PHistoryPtr_ = new vector<pair<lTime, Matrix<double, dSTATE_SIZE, dSTATE_SIZE>>>(bufferL);
     for (int i = 0; i < bufferL; i++)
     {
       imuHistoryPtr_->at(i).time = lTime(0, 0);
     }
-    Mptr = new Matrix<float, dSTATE_SIZE, dSTATE_SIZE>;
+    Mptr = new Matrix<double, dSTATE_SIZE, dSTATE_SIZE>;
   }
   if (delayHandling_ == larsonNewestIMU)
   {
     // init newest value
     lastImu_.time = lTime(0, 0);
-    Mptr = new Matrix<float, dSTATE_SIZE, dSTATE_SIZE>;
+    Mptr = new Matrix<double, dSTATE_SIZE, dSTATE_SIZE>;
   }
   if (delayHandling_ == applyUpdateToNew || delayHandling_ == larsonAverageIMU)
   {
     // init circular buffer for state
-    stateHistoryPtr_ = new vector<pair<lTime, Matrix<float, STATE_SIZE, 1>>>(bufferL_);
+    stateHistoryPtr_ = new vector<pair<lTime, Matrix<double, STATE_SIZE, 1>>>(bufferL_);
     for (int i = 0; i < bufferL; i++)
     {
       stateHistoryPtr_->at(i).first = lTime(0, 0);
@@ -74,26 +74,26 @@ ESKF::ESKF(
   }
 }
 
-Matrix<float, STATE_SIZE, 1> ESKF::makeState(
-  const Vector3f& p,
-  const Vector3f& v,
-  const Quaternionf& q,
-  const Vector3f& a_b,
-  const Vector3f& omega_b)
+Matrix<double, STATE_SIZE, 1> ESKF::makeState(
+  const Vector3d& p,
+  const Vector3d& v,
+  const Quaterniond& q,
+  const Vector3d& a_b,
+  const Vector3d& omega_b)
 {
-  Matrix<float, STATE_SIZE, 1> out;
+  Matrix<double, STATE_SIZE, 1> out;
   out << p, v, quatToHamilton(q).normalized(), a_b, omega_b;
   return out;
 }
 
-Matrix<float, dSTATE_SIZE, dSTATE_SIZE> ESKF::makeP(
-  const Matrix3f& cov_pos,
-  const Matrix3f& cov_vel,
-  const Matrix3f& cov_dtheta,
-  const Matrix3f& cov_a_b,
-  const Matrix3f& cov_omega_b)
+Matrix<double, dSTATE_SIZE, dSTATE_SIZE> ESKF::makeP(
+  const Matrix3d& cov_pos,
+  const Matrix3d& cov_vel,
+  const Matrix3d& cov_dtheta,
+  const Matrix3d& cov_a_b,
+  const Matrix3d& cov_omega_b)
 {
-  Matrix<float, dSTATE_SIZE, dSTATE_SIZE> P;
+  Matrix<double, dSTATE_SIZE, dSTATE_SIZE> P;
   P.setZero();
   P.block<3, 3>(dPOS_IDX, dPOS_IDX) = cov_pos;
   P.block<3, 3>(dVEL_IDX, dVEL_IDX) = cov_vel;
@@ -103,56 +103,56 @@ Matrix<float, dSTATE_SIZE, dSTATE_SIZE> ESKF::makeP(
   return P;
 }
 
-Matrix3f ESKF::getDCM()
+Matrix3d ESKF::getDCM()
 {
   return getQuat().matrix();
 }
 
-Quaternionf ESKF::quatFromHamilton(const Vector4f& qHam)
+Quaterniond ESKF::quatFromHamilton(const Vector4d& qHam)
 {
-  return Quaternionf((Vector4f() << qHam.block<3, 1>(1, 0),  // x, y, z
+  return Quaterniond((Vector4d() << qHam.block<3, 1>(1, 0),  // x, y, z
                       qHam.block<1, 1>(0, 0)                 // w
                       )
                        .finished());
 }
 
-Vector4f ESKF::quatToHamilton(const Quaternionf& q)
+Vector4d ESKF::quatToHamilton(const Quaterniond& q)
 {
-  return (Vector4f() << q.coeffs().block<1, 1>(3, 0),  // w
+  return (Vector4d() << q.coeffs().block<1, 1>(3, 0),  // w
           q.coeffs().block<3, 1>(0, 0)                 // x, y, z
           )
     .finished();
 }
 
-Matrix3f ESKF::getSkew(const Vector3f& in)
+Matrix3d ESKF::getSkew(const Vector3d& in)
 {
-  Matrix3f out;
+  Matrix3d out;
   out << 0, -in(2), in(1), in(2), 0, -in(0), -in(1), in(0), 0;
   return out;
 }
 
-Matrix3f ESKF::rotVecToMat(const Vector3f& in)
+Matrix3d ESKF::rotVecToMat(const Vector3d& in)
 {
-  float angle = in.norm();
-  Vector3f axis = (angle == 0) ? Vector3f(1, 0, 0) : in.normalized();
-  AngleAxisf angAx(angle, axis);
+  double angle = in.norm();
+  Vector3d axis = (angle == 0) ? Vector3d(1, 0, 0) : in.normalized();
+  AngleAxisd angAx(angle, axis);
   return angAx.toRotationMatrix();
 }
 
-Quaternionf ESKF::rotVecToQuat(const Vector3f& in)
+Quaterniond ESKF::rotVecToQuat(const Vector3d& in)
 {
-  float angle = in.norm();
-  Vector3f axis = (angle == 0) ? Vector3f(1, 0, 0) : in.normalized();
-  return Quaternionf(AngleAxisf(angle, axis));
+  double angle = in.norm();
+  Vector3d axis = (angle == 0) ? Vector3d(1, 0, 0) : in.normalized();
+  return Quaterniond(AngleAxisd(angle, axis));
 }
 
-Vector3f ESKF::quatToRotVec(const Quaternionf& q)
+Vector3d ESKF::quatToRotVec(const Quaterniond& q)
 {
-  AngleAxisf angAx(q);
+  AngleAxisd angAx(q);
   return angAx.angle() * angAx.axis();
 }
 
-void ESKF::predictIMU(const Vector3f& a_m, const Vector3f& omega_m, const float dt, lTime stamp)
+void ESKF::predictIMU(const Vector3d& a_m, const Vector3d& omega_m, const double dt, lTime stamp)
 {
   recentPtr++;
   // handle time delay methods
@@ -177,18 +177,18 @@ void ESKF::predictIMU(const Vector3f& a_m, const Vector3f& omega_m, const float 
   }
 
   // DCM of current state
-  Matrix3f Rot = getDCM();
+  Matrix3d Rot = getDCM();
   // Accelerometer measurement
-  Vector3f acc_body = a_m - getAccelBias();
-  Vector3f acc_global = Rot * acc_body;
+  Vector3d acc_body = a_m - getAccelBias();
+  Vector3d acc_global = Rot * acc_body;
   // Gyro measruement
-  Vector3f omega = omega_m - getGyroBias();
-  Vector3f delta_theta = omega * dt;
-  Quaternionf q_delta_theta = rotVecToQuat(delta_theta);
-  Matrix3f R_delta_theta = q_delta_theta.toRotationMatrix();
+  Vector3d omega = omega_m - getGyroBias();
+  Vector3d delta_theta = omega * dt;
+  Quaterniond q_delta_theta = rotVecToQuat(delta_theta);
+  Matrix3d R_delta_theta = q_delta_theta.toRotationMatrix();
 
   // Nominal state kinematics (eqn 259, pg 58)
-  Vector3f delta_pos = getVel() * dt + 0.5f * (acc_global + a_gravity_) * dt * dt;
+  Vector3d delta_pos = getVel() * dt + 0.5f * (acc_global + a_gravity_) * dt * dt;
   nominalState_.block<3, 1>(POS_IDX, 0) += delta_pos;
   nominalState_.block<3, 1>(VEL_IDX, 0) += (acc_global + a_gravity_) * dt;
   nominalState_.block<4, 1>(QUAT_IDX, 0) = quatToHamilton(getQuat() * q_delta_theta).normalized();
@@ -207,7 +207,7 @@ void ESKF::predictIMU(const Vector3f& a_m, const Vector3f& omega_m, const float 
   // Predict P and inject variance (with diagonal optimization)
   // P_ = F_x_*P_*F_x_.transpose();
 
-  Matrix<float, dSTATE_SIZE, dSTATE_SIZE> Pnew;
+  Matrix<double, dSTATE_SIZE, dSTATE_SIZE> Pnew;
   unrolledFPFt(P_, Pnew, dt, -Rot * getSkew(acc_body) * dt, -Rot * dt, R_delta_theta.transpose());
   P_ = Pnew;
 
@@ -220,14 +220,14 @@ void ESKF::predictIMU(const Vector3f& a_m, const Vector3f& omega_m, const float 
   if (delayHandling_ == applyUpdateToNew || delayHandling_ == larsonAverageIMU)
   {
     // store state for later.
-    pair<lTime, Matrix<float, STATE_SIZE, 1>> thisState;
+    pair<lTime, Matrix<double, STATE_SIZE, 1>> thisState;
     thisState.first = stamp;
     thisState.second = nominalState_;
     stateHistoryPtr_->at(recentPtr % bufferL_) = thisState;
   }
   if (delayHandling_ == larsonAverageIMU)
   {
-    pair<lTime, Matrix<float, dSTATE_SIZE, dSTATE_SIZE>> thisP;
+    pair<lTime, Matrix<double, dSTATE_SIZE, dSTATE_SIZE>> thisP;
     thisP.first = stamp;
     thisP.second = P_;
     PHistoryPtr_->at(recentPtr % bufferL_) = thisP;
@@ -235,21 +235,21 @@ void ESKF::predictIMU(const Vector3f& a_m, const Vector3f& omega_m, const float 
 }
 
 // eqn 280, page 62
-Matrix<float, 4, 3> ESKF::getQ_dtheta()
+Matrix<double, 4, 3> ESKF::getQ_dtheta()
 {
-  Vector4f qby2 = 0.5f * getQuatVector();
+  Vector4d qby2 = 0.5f * getQuatVector();
   // Assing to letters for readability. Note Hamilton order.
-  float w = qby2[0];
-  float x = qby2[1];
-  float y = qby2[2];
-  float z = qby2[3];
-  Matrix<float, 4, 3> Q_dtheta;
+  double w = qby2[0];
+  double x = qby2[1];
+  double y = qby2[2];
+  double z = qby2[3];
+  Matrix<double, 4, 3> Q_dtheta;
   Q_dtheta << -x, -y, -z, w, -z, y, z, w, -x, -y, x, w;
   return Q_dtheta;
 }
 
 // get best time from history of state
-int ESKF::getClosestTime(vector<pair<lTime, Matrix<float, STATE_SIZE, 1>>>* ptr, lTime stamp)
+int ESKF::getClosestTime(vector<pair<lTime, Matrix<double, STATE_SIZE, 1>>>* ptr, lTime stamp)
 {
   // we find the first time in the history that is older, or take the oldest one if the buffer does
   // not extend far enough
@@ -301,8 +301,8 @@ int ESKF::getClosestTime(vector<imuMeasurement>* ptr, lTime stamp)
 }
 
 void ESKF::measurePos(
-  const Vector3f& pos_meas,
-  const Matrix3f& pos_covariance,
+  const Vector3d& pos_meas,
+  const Matrix3d& pos_covariance,
   lTime stamp,
   lTime now)
 {
@@ -310,7 +310,7 @@ void ESKF::measurePos(
   if (firstMeasTime == lTime(INT32_MAX, INT32_MAX))
     firstMeasTime = now;
 
-  Vector3f delta_pos;
+  Vector3d delta_pos;
   if (delayHandling_ == noMethod || delayHandling_ == larsonAverageIMU)
   {
     delta_pos = pos_meas - getPos();
@@ -337,7 +337,7 @@ void ESKF::measurePos(
   }
   lastMeasurement = now;
   // H is a trivial observation of purely the position
-  Matrix<float, 3, dSTATE_SIZE> H;
+  Matrix<double, 3, dSTATE_SIZE> H;
   H.setZero();
   H.block<3, 3>(0, dPOS_IDX) = I_3;
 
@@ -346,8 +346,8 @@ void ESKF::measurePos(
 }
 
 void ESKF::measureQuat(
-  const Quaternionf& q_gb_meas,
-  const Matrix3f& theta_covariance,
+  const Quaterniond& q_gb_meas,
+  const Matrix3d& theta_covariance,
   lTime stamp,
   lTime now)
 {
@@ -357,7 +357,7 @@ void ESKF::measureQuat(
   // so this becomes a trivial measurement of dtheta.
   if (firstMeasTime == lTime(INT32_MAX, INT32_MAX))
     firstMeasTime = now;
-  Quaternionf q_gb_nominal = getQuat();
+  Quaterniond q_gb_nominal = getQuat();
   if (delayHandling_ == noMethod || delayHandling_ == larsonAverageIMU)
   {
     q_gb_nominal = getQuat();
@@ -373,10 +373,10 @@ void ESKF::measureQuat(
     else
       q_gb_nominal = getQuat();
   }
-  Quaternionf q_bNominal_bMeas = q_gb_nominal.conjugate() * q_gb_meas;
-  Vector3f delta_theta = quatToRotVec(q_bNominal_bMeas);
+  Quaterniond q_bNominal_bMeas = q_gb_nominal.conjugate() * q_gb_meas;
+  Vector3d delta_theta = quatToRotVec(q_bNominal_bMeas);
   // Because of the above construction, H is a trivial observation of dtheta
-  Matrix<float, 3, dSTATE_SIZE> H;
+  Matrix<double, 3, dSTATE_SIZE> H;
   H.setZero();
   H.block<3, 3>(0, dTHETA_IDX) = I_3;
 
@@ -385,9 +385,9 @@ void ESKF::measureQuat(
 }
 
 void ESKF::update_3D(
-  const Vector3f& delta_measurement,
-  const Matrix3f& meas_covariance,
-  const Matrix<float, 3, dSTATE_SIZE>& H,
+  const Vector3d& delta_measurement,
+  const Matrix3d& meas_covariance,
+  const Matrix<double, 3, dSTATE_SIZE>& H,
   lTime stamp,
   lTime now)
 {
@@ -402,15 +402,15 @@ void ESKF::update_3D(
   if (delayHandling_ == larsonAverageIMU && !normalPass)
   {
     imuMeasurement avMeas = getAverageIMU(stamp);
-    float dt = (now - stamp).toSec();
-    Vector3f acc_body = avMeas.acc - getAccelBias();
-    Vector3f omega = avMeas.gyro - getGyroBias();
-    Vector3f delta_theta = omega * dt;
-    Quaternionf q_delta_theta = rotVecToQuat(delta_theta);
-    Matrix3f R_delta_theta = q_delta_theta.toRotationMatrix();
+    double dt = (now - stamp).toSec();
+    Vector3d acc_body = avMeas.acc - getAccelBias();
+    Vector3d omega = avMeas.gyro - getGyroBias();
+    Vector3d delta_theta = omega * dt;
+    Quaterniond q_delta_theta = rotVecToQuat(delta_theta);
+    Matrix3d R_delta_theta = q_delta_theta.toRotationMatrix();
     bestTimeIndex = getClosestTime(stateHistoryPtr_, stamp);
 
-    Matrix3f Rot =
+    Matrix3d Rot =
       quatFromHamilton(stateHistoryPtr_->at(bestTimeIndex).second.block<4, 1>(QUAT_IDX, 0))
         .matrix();
     // dPos row
@@ -424,8 +424,8 @@ void ESKF::update_3D(
   }
 
   // Kalman gain
-  Matrix<float, dSTATE_SIZE, 3> PHt = P_ * H.transpose();
-  Matrix<float, dSTATE_SIZE, 3> K;
+  Matrix<double, dSTATE_SIZE, 3> PHt = P_ * H.transpose();
+  Matrix<double, dSTATE_SIZE, 3> K;
   if ((delayHandling_ == noMethod || delayHandling_ == applyUpdateToNew
        || delayHandling_ == larsonAverageIMU))
   {
@@ -436,11 +436,11 @@ void ESKF::update_3D(
     K = F_x_ * K;
   }
   // Correction error state
-  Matrix<float, dSTATE_SIZE, 1> errorState = K * delta_measurement;
+  Matrix<double, dSTATE_SIZE, 1> errorState = K * delta_measurement;
   // Update P (simple form)
   // P = (I_dx - K*H)*P;
   // Update P (Joseph form)
-  Matrix<float, dSTATE_SIZE, dSTATE_SIZE> I_KH = I_dx - K * H;
+  Matrix<double, dSTATE_SIZE, dSTATE_SIZE> I_KH = I_dx - K * H;
   if (delayHandling_ == noMethod || delayHandling_ == applyUpdateToNew)
   {
     P_ = I_KH * P_ * I_KH.transpose() + K * meas_covariance * K.transpose();
@@ -455,8 +455,8 @@ void ESKF::update_3D(
 
 ESKF::imuMeasurement ESKF::getAverageIMU(lTime stamp)
 {
-  Vector3f accelAcc(0, 0, 0);
-  Vector3f gyroAcc(0, 0, 0);
+  Vector3d accelAcc(0, 0, 0);
+  Vector3d gyroAcc(0, 0, 0);
   int complete = 0;
   int index = recentPtr;
   int count = 0;
@@ -489,12 +489,12 @@ ESKF::imuMeasurement ESKF::getAverageIMU(lTime stamp)
   return ret;
 }
 
-void ESKF::injectErrorState(const Matrix<float, dSTATE_SIZE, 1>& error_state)
+void ESKF::injectErrorState(const Matrix<double, dSTATE_SIZE, 1>& error_state)
 {  // Inject error state into nominal state (eqn 282, pg 62)
   nominalState_.block<3, 1>(POS_IDX, 0) += error_state.block<3, 1>(dPOS_IDX, 0);
   nominalState_.block<3, 1>(VEL_IDX, 0) += error_state.block<3, 1>(dVEL_IDX, 0);
-  Vector3f dtheta = error_state.block<3, 1>(dTHETA_IDX, 0);
-  Quaternionf q_dtheta = rotVecToQuat(dtheta);
+  Vector3d dtheta = error_state.block<3, 1>(dTHETA_IDX, 0);
+  Quaterniond q_dtheta = rotVecToQuat(dtheta);
   nominalState_.block<4, 1>(QUAT_IDX, 0) = quatToHamilton(getQuat() * q_dtheta).normalized();
   nominalState_.block<3, 1>(AB_IDX, 0) += error_state.block<3, 1>(dAB_IDX, 0);
   nominalState_.block<3, 1>(GB_IDX, 0) += error_state.block<3, 1>(dGB_IDX, 0);
@@ -502,7 +502,7 @@ void ESKF::injectErrorState(const Matrix<float, dSTATE_SIZE, 1>& error_state)
   // Reflect this tranformation in the P matrix, aka ESKF Reset
   // Note that the document suggests that this step is optional
   // eqn 287, pg 63
-  Matrix3f G_theta = I_3 - getSkew(0.5f * dtheta);
+  Matrix3d G_theta = I_3 - getSkew(0.5f * dtheta);
   P_.block<3, 3>(dTHETA_IDX, dTHETA_IDX) =
     G_theta * P_.block<3, 3>(dTHETA_IDX, dTHETA_IDX) * G_theta.transpose();
 }

@@ -50,18 +50,18 @@ int DataFiles::getNext(ifstream& file, mocapData& mocap, imuData& imu, int& type
     mocap.pos[2] = atof(str.c_str());
 
     getline(file, str, ',');
-    float qx = atof(str.c_str());
+    double qx = atof(str.c_str());
 
     getline(file, str, ',');
-    float qy = atof(str.c_str());
+    double qy = atof(str.c_str());
 
     getline(file, str, ',');
-    float qz = atof(str.c_str());
+    double qz = atof(str.c_str());
 
     getline(file, str, ',');
-    float qw = atof(str.c_str());
+    double qw = atof(str.c_str());
 
-    mocap.quat = Quaternionf(qw, qx, qy, qz);
+    mocap.quat = Quaterniond(qw, qx, qy, qz);
 
     getline(file, str, ',');
     mocap.stamp.sec = atoi(str.c_str());

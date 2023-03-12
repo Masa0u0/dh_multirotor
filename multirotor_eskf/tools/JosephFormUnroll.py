@@ -52,7 +52,7 @@ copy_lower_to_upper(Pnew)  # Exploit symmetric Pnew for CSE
 
 # Generate common subexpressions
 sub_expr, Pnew_cse = sp.cse(Pnew)
-sub_expr_strs = ['const float {} = {};'.format(name, code) for name, code in sub_expr]
+sub_expr_strs = ['const double {} = {};'.format(name, code) for name, code in sub_expr]
 
 # Generate matrix expression
 mat_strs = []
@@ -69,12 +69,12 @@ header = """
 #include <Eigen/Core>
 
 static inline void unrolledFPFt(
-        const Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE>& Pin,
-        Eigen::Matrix<float, dSTATE_SIZE, dSTATE_SIZE>& Pnew,
-        const float dt,
-        const Eigen::Matrix3f& dVel_dTheta,
-        const Eigen::Matrix3f& dVel_dAccelBias,
-        const Eigen::Matrix3f& dTheta_dTheta
+        const Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& Pin,
+        Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& Pnew,
+        const double dt,
+        const Eigen::Matrix3d& dVel_dTheta,
+        const Eigen::Matrix3d& dVel_dAccelBias,
+        const Eigen::Matrix3d& dTheta_dTheta
         ) {
 """
 

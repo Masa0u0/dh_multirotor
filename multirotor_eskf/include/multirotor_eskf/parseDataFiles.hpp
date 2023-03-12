@@ -15,15 +15,15 @@ enum dataType
 
 struct imuData
 {
-  Eigen::Vector3f accel;
-  Eigen::Vector3f gyro;
+  Eigen::Vector3d accel;
+  Eigen::Vector3d gyro;
   ros::Time stamp;
 };
 
 struct mocapData
 {
-  Eigen::Vector3f pos;
-  Eigen::Quaternionf quat;
+  Eigen::Vector3d pos;
+  Eigen::Quaterniond quat;
   ros::Time stamp;
   ros::Time receivedTime;
 };

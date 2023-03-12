@@ -10,7 +10,7 @@
 
 #define SQ(x) (x * x)
 #define GRAVITY 9.812  // London g value.
-#define I_3 (Matrix3f::Identity())
+#define I_3 (Matrix3d::Identity())
 
 using namespace std;
 using namespace Eigen;
@@ -20,21 +20,22 @@ double difference(ESKF eskfRef, ESKF eskfTest);
 
 int main(int argc, char** argv)
 {
-  float sigma_accel = 0.00124;  // [m/s^2]  (value derived from Noise Spectral Density in datasheet)
-  float sigma_gyro = 0.276;     // [rad/s] (value derived from Noise Spectral Density in datasheet)
-  float sigma_accel_drift =
+  double sigma_accel =
+    0.00124;                  // [m/s^2]  (value derived from Noise Spectral Density in datasheet)
+  double sigma_gyro = 0.276;  // [rad/s] (value derived from Noise Spectral Density in datasheet)
+  double sigma_accel_drift =
     0.001f * sigma_accel;  // [m/s^2 sqrt(s)] (Educated guess, real value to be measured)
-  float sigma_gyro_drift =
+  double sigma_gyro_drift =
     0.001f * sigma_gyro;  // [rad/s sqrt(s)] (Educated guess, real value to be measured)
 
-  float sigma_init_pos = 1.0;                            // [m]
-  float sigma_init_vel = 0.1;                            // [m/s]
-  float sigma_init_dtheta = 1.0;                         // [rad]
-  float sigma_init_accel_bias = 10 * sigma_accel_drift;  // [m/s^2]
-  float sigma_init_gyro_bias = 10 * sigma_gyro_drift;    // [rad/s]
+  double sigma_init_pos = 1.0;                            // [m]
+  double sigma_init_vel = 0.1;                            // [m/s]
+  double sigma_init_dtheta = 1.0;                         // [rad]
+  double sigma_init_accel_bias = 10 * sigma_accel_drift;  // [m/s^2]
+  double sigma_init_gyro_bias = 10 * sigma_gyro_drift;    // [rad/s]
 
-  float sigma_mocap_pos = 0.003;  // [m]
-  float sigma_mocap_rot = 0.03;   // [rad]
+  double sigma_mocap_pos = 0.003;  // [m]
+  double sigma_mocap_rot = 0.03;   // [rad]
   // initialise many ESKF's for testing:
   //  eskfSpoof - Will be fed data as if there is no lag, this is the comparison case
   //  eskfAsArrive - No time correction method used, just fed lagged data.
@@ -45,13 +46,13 @@ int main(int argc, char** argv)
   //  eskfUpdateToNew - Keeps the state in a buffer, calculates the update that would have been made
   //  if there was no lag, then applies directly to current state.
   ESKF eskfSpoof(
-    Vector3f(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
+    Vector3d(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
     ESKF::makeState(
-      Vector3f(0, 0, 1),                                 // init pos
-      Vector3f(0, 0, 0),                                 // init vel
-      Quaternionf(AngleAxisf(0.0f, Vector3f(0, 0, 1))),  // init quaternion
-      Vector3f(-1.26, -1.09, -1.977),                    // init accel bias
-      Vector3f(0.114, -0.01, 0)                          // init gyro bias
+      Vector3d(0, 0, 1),                              // init pos
+      Vector3d(0, 0, 0),                              // init vel
+      Quaterniond(AngleAxisd(0, Vector3d(0, 0, 1))),  // init quaternion
+      Vector3d(-1.26, -1.09, -1.977),                 // init accel bias
+      Vector3d(0.114, -0.01, 0)                       // init gyro bias
       ),
     ESKF::makeP(
       SQ(sigma_init_pos) * I_3, SQ(sigma_init_vel) * I_3, SQ(sigma_init_dtheta) * I_3,
@@ -59,13 +60,13 @@ int main(int argc, char** argv)
     SQ(sigma_accel), SQ(sigma_gyro), SQ(sigma_accel_drift), SQ(sigma_gyro_drift),
     ESKF::delayTypes::noMethod, 100);
   ESKF eskfAsArrive(
-    Vector3f(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
+    Vector3d(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
     ESKF::makeState(
-      Vector3f(0, 0, 1),                                 // init pos
-      Vector3f(0, 0, 0),                                 // init vel
-      Quaternionf(AngleAxisf(0.0f, Vector3f(0, 0, 1))),  // init quaternion
-      Vector3f(-1.26, -1.09, -1.977),                    // init accel bias
-      Vector3f(0.114, -0.01, 0)                          // init gyro bias
+      Vector3d(0, 0, 1),                              // init pos
+      Vector3d(0, 0, 0),                              // init vel
+      Quaterniond(AngleAxisd(0, Vector3d(0, 0, 1))),  // init quaternion
+      Vector3d(-1.26, -1.09, -1.977),                 // init accel bias
+      Vector3d(0.114, -0.01, 0)                       // init gyro bias
       ),
     ESKF::makeP(
       SQ(sigma_init_pos) * I_3, SQ(sigma_init_vel) * I_3, SQ(sigma_init_dtheta) * I_3,
@@ -74,13 +75,13 @@ int main(int argc, char** argv)
     ESKF::delayTypes::noMethod, 100);
 
   ESKF eskfUpdateToNew(
-    Vector3f(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
+    Vector3d(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
     ESKF::makeState(
-      Vector3f(0, 0, 1),                                 // init pos
-      Vector3f(0, 0, 0),                                 // init vel
-      Quaternionf(AngleAxisf(0.0f, Vector3f(0, 0, 1))),  // init quaternion
-      Vector3f(-1.26, -1.09, -1.977),                    // init accel bias
-      Vector3f(0.114, -0.01, 0)                          // init gyro bias
+      Vector3d(0, 0, 1),                              // init pos
+      Vector3d(0, 0, 0),                              // init vel
+      Quaterniond(AngleAxisd(0, Vector3d(0, 0, 1))),  // init quaternion
+      Vector3d(-1.26, -1.09, -1.977),                 // init accel bias
+      Vector3d(0.114, -0.01, 0)                       // init gyro bias
       ),
     ESKF::makeP(
       SQ(sigma_init_pos) * I_3, SQ(sigma_init_vel) * I_3, SQ(sigma_init_dtheta) * I_3,
@@ -214,8 +215,8 @@ int main(int argc, char** argv)
   }
   asArriveError = asArriveErrorAcc / (testIMUCount - 100);
   upToNewError = upToNewErrorAcc / (testIMUCount - 100);
-  Vector3f accelBias = eskfUpdateToNew.getAccelBias();
-  Vector3f gyroBias = eskfUpdateToNew.getGyroBias();
+  Vector3d accelBias = eskfUpdateToNew.getAccelBias();
+  Vector3d gyroBias = eskfUpdateToNew.getGyroBias();
   cout << "accelBias" << accelBias << endl << "  gyroBias " << gyroBias << endl;
   cout << "asArrive pos error average = " << asArriveError << endl;
   cout << "asArrive largest error = " << asArriveLargestError << endl;
@@ -229,17 +230,17 @@ int main(int argc, char** argv)
 
 double difference(ESKF eskfRef, ESKF eskfTest)
 {
-  Vector3f posRef = eskfRef.getPos();
-  Vector3f posTest = eskfTest.getPos();
-  Vector3f out = posTest - posRef;
+  Vector3d posRef = eskfRef.getPos();
+  Vector3d posTest = eskfTest.getPos();
+  Vector3d out = posTest - posRef;
   return out.norm();
 }
 
 void postTF(ESKF eskf, tf::TransformBroadcaster tb, string name)
 {
   tf::StampedTransform pred;
-  Vector3f pos = eskf.getPos();
-  Quaternionf quat = eskf.getQuat();
+  Vector3d pos = eskf.getPos();
+  Quaterniond quat = eskf.getQuat();
   pred.setOrigin(tf::Vector3(pos[0], pos[1], pos[2]));
   pred.setRotation(tf::Quaternion(quat.x(), quat.y(), quat.z(), quat.w()));
   pred.stamp_ = ros::Time::now();
