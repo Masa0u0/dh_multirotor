@@ -1,5 +1,4 @@
 import sympy as sp
-from sympy.utilities.codegen import codegen
 
 dPOS_IDX = (0)
 dVEL_IDX = (dPOS_IDX + 3)
