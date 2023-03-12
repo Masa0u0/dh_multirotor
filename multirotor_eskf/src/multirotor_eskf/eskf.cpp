@@ -8,7 +8,7 @@
 using namespace Eigen;
 using namespace std;
 
-ESKF::ESKF(
+ErrorStateKalmanFilter::ErrorStateKalmanFilter(
   Vector3d a_gravity,
   const Matrix<double, STATE_SIZE, 1>& initialState,
   const Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& initalP,
@@ -74,7 +74,7 @@ ESKF::ESKF(
   }
 }
 
-Matrix<double, STATE_SIZE, 1> ESKF::makeState(
+Matrix<double, STATE_SIZE, 1> ErrorStateKalmanFilter::makeState(
   const Vector3d& p,
   const Vector3d& v,
   const Quaterniond& q,
@@ -86,7 +86,7 @@ Matrix<double, STATE_SIZE, 1> ESKF::makeState(
   return out;
 }
 
-Matrix<double, dSTATE_SIZE, dSTATE_SIZE> ESKF::makeP(
+Matrix<double, dSTATE_SIZE, dSTATE_SIZE> ErrorStateKalmanFilter::makeP(
   const Matrix3d& cov_pos,
   const Matrix3d& cov_vel,
   const Matrix3d& cov_dtheta,
@@ -103,12 +103,12 @@ Matrix<double, dSTATE_SIZE, dSTATE_SIZE> ESKF::makeP(
   return P;
 }
 
-Matrix3d ESKF::getDCM()
+Matrix3d ErrorStateKalmanFilter::getDCM()
 {
   return getQuat().matrix();
 }
 
-Quaterniond ESKF::quatFromHamilton(const Vector4d& qHam)
+Quaterniond ErrorStateKalmanFilter::quatFromHamilton(const Vector4d& qHam)
 {
   return Quaterniond((Vector4d() << qHam.block<3, 1>(1, 0),  // x, y, z
                       qHam.block<1, 1>(0, 0)                 // w
@@ -116,7 +116,7 @@ Quaterniond ESKF::quatFromHamilton(const Vector4d& qHam)
                        .finished());
 }
 
-Vector4d ESKF::quatToHamilton(const Quaterniond& q)
+Vector4d ErrorStateKalmanFilter::quatToHamilton(const Quaterniond& q)
 {
   return (Vector4d() << q.coeffs().block<1, 1>(3, 0),  // w
           q.coeffs().block<3, 1>(0, 0)                 // x, y, z
@@ -124,14 +124,14 @@ Vector4d ESKF::quatToHamilton(const Quaterniond& q)
     .finished();
 }
 
-Matrix3d ESKF::getSkew(const Vector3d& in)
+Matrix3d ErrorStateKalmanFilter::getSkew(const Vector3d& in)
 {
   Matrix3d out;
   out << 0, -in(2), in(1), in(2), 0, -in(0), -in(1), in(0), 0;
   return out;
 }
 
-Matrix3d ESKF::rotVecToMat(const Vector3d& in)
+Matrix3d ErrorStateKalmanFilter::rotVecToMat(const Vector3d& in)
 {
   double angle = in.norm();
   Vector3d axis = (angle == 0) ? Vector3d(1, 0, 0) : in.normalized();
@@ -139,20 +139,24 @@ Matrix3d ESKF::rotVecToMat(const Vector3d& in)
   return angAx.toRotationMatrix();
 }
 
-Quaterniond ESKF::rotVecToQuat(const Vector3d& in)
+Quaterniond ErrorStateKalmanFilter::rotVecToQuat(const Vector3d& in)
 {
   double angle = in.norm();
   Vector3d axis = (angle == 0) ? Vector3d(1, 0, 0) : in.normalized();
   return Quaterniond(AngleAxisd(angle, axis));
 }
 
-Vector3d ESKF::quatToRotVec(const Quaterniond& q)
+Vector3d ErrorStateKalmanFilter::quatToRotVec(const Quaterniond& q)
 {
   AngleAxisd angAx(q);
   return angAx.angle() * angAx.axis();
 }
 
-void ESKF::predictIMU(const Vector3d& a_m, const Vector3d& omega_m, const double dt, lTime stamp)
+void ErrorStateKalmanFilter::predictIMU(
+  const Vector3d& a_m,
+  const Vector3d& omega_m,
+  const double dt,
+  lTime stamp)
 {
   recentPtr++;
   // handle time delay methods
@@ -235,7 +239,7 @@ void ESKF::predictIMU(const Vector3d& a_m, const Vector3d& omega_m, const double
 }
 
 // eqn 280, page 62
-Matrix<double, 4, 3> ESKF::getQ_dtheta()
+Matrix<double, 4, 3> ErrorStateKalmanFilter::getQ_dtheta()
 {
   Vector4d qby2 = 0.5f * getQuatVector();
   // Assing to letters for readability. Note Hamilton order.
@@ -249,7 +253,9 @@ Matrix<double, 4, 3> ESKF::getQ_dtheta()
 }
 
 // get best time from history of state
-int ESKF::getClosestTime(vector<pair<lTime, Matrix<double, STATE_SIZE, 1>>>* ptr, lTime stamp)
+int ErrorStateKalmanFilter::getClosestTime(
+  vector<pair<lTime, Matrix<double, STATE_SIZE, 1>>>* ptr,
+  lTime stamp)
 {
   // we find the first time in the history that is older, or take the oldest one if the buffer does
   // not extend far enough
@@ -275,7 +281,7 @@ int ESKF::getClosestTime(vector<pair<lTime, Matrix<double, STATE_SIZE, 1>>>* ptr
 }
 
 // get best time from history of imu
-int ESKF::getClosestTime(vector<imuMeasurement>* ptr, lTime stamp)
+int ErrorStateKalmanFilter::getClosestTime(vector<imuMeasurement>* ptr, lTime stamp)
 {
   // we find the first time in the history that is older, or take the oldest one if the buffer does
   // not extend far enough
@@ -300,7 +306,7 @@ int ESKF::getClosestTime(vector<imuMeasurement>* ptr, lTime stamp)
   return recentPtr % bufferL_;
 }
 
-void ESKF::measurePos(
+void ErrorStateKalmanFilter::measurePos(
   const Vector3d& pos_meas,
   const Matrix3d& pos_covariance,
   lTime stamp,
@@ -345,7 +351,7 @@ void ESKF::measurePos(
   update_3D(delta_pos, pos_covariance, H, stamp, now);
 }
 
-void ESKF::measureQuat(
+void ErrorStateKalmanFilter::measureQuat(
   const Quaterniond& q_gb_meas,
   const Matrix3d& theta_covariance,
   lTime stamp,
@@ -384,7 +390,7 @@ void ESKF::measureQuat(
   update_3D(delta_theta, theta_covariance, H, stamp, now);
 }
 
-void ESKF::update_3D(
+void ErrorStateKalmanFilter::update_3D(
   const Vector3d& delta_measurement,
   const Matrix3d& meas_covariance,
   const Matrix<double, 3, dSTATE_SIZE>& H,
@@ -453,7 +459,7 @@ void ESKF::update_3D(
   injectErrorState(errorState);
 }
 
-ESKF::imuMeasurement ESKF::getAverageIMU(lTime stamp)
+ErrorStateKalmanFilter::imuMeasurement ErrorStateKalmanFilter::getAverageIMU(lTime stamp)
 {
   Vector3d accelAcc(0, 0, 0);
   Vector3d gyroAcc(0, 0, 0);
@@ -482,14 +488,14 @@ ESKF::imuMeasurement ESKF::getAverageIMU(lTime stamp)
   }
   accelAcc = accelAcc / count;
   gyroAcc = gyroAcc / count;
-  ESKF::imuMeasurement ret;
+  ErrorStateKalmanFilter::imuMeasurement ret;
   ret.acc = accelAcc;
   ret.gyro = gyroAcc;
   ret.time = imuHistoryPtr_->at(index % bufferL_).time;
   return ret;
 }
 
-void ESKF::injectErrorState(const Matrix<double, dSTATE_SIZE, 1>& error_state)
+void ErrorStateKalmanFilter::injectErrorState(const Matrix<double, dSTATE_SIZE, 1>& error_state)
 {  // Inject error state into nominal state (eqn 282, pg 62)
   nominalState_.block<3, 1>(POS_IDX, 0) += error_state.block<3, 1>(dPOS_IDX, 0);
   nominalState_.block<3, 1>(VEL_IDX, 0) += error_state.block<3, 1>(dVEL_IDX, 0);
@@ -499,7 +505,7 @@ void ESKF::injectErrorState(const Matrix<double, dSTATE_SIZE, 1>& error_state)
   nominalState_.block<3, 1>(AB_IDX, 0) += error_state.block<3, 1>(dAB_IDX, 0);
   nominalState_.block<3, 1>(GB_IDX, 0) += error_state.block<3, 1>(dGB_IDX, 0);
 
-  // Reflect this tranformation in the P matrix, aka ESKF Reset
+  // Reflect this tranformation in the P matrix, aka ErrorStateKalmanFilter Reset
   // Note that the document suggests that this step is optional
   // eqn 287, pg 63
   Matrix3d G_theta = I_3 - getSkew(0.5f * dtheta);

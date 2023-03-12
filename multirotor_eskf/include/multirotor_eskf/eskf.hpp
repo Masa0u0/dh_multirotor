@@ -23,13 +23,13 @@
 #define dSTATE_SIZE (dGB_IDX + 3)
 
 // the main ESKF class
-class ESKF
+class ErrorStateKalmanFilter
 {
 public:
-  ESKF(){};
+  ErrorStateKalmanFilter(){};
   // takes as input the  variance of the acceleration and gyro, where _n is the measurement noise,
   // and _w is the pertibations of the system.
-  ESKF(
+  ErrorStateKalmanFilter(
     Eigen::Vector3d a_gravity,
     const Eigen::Matrix<double, STATE_SIZE, 1>& initialState,
     const Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& initalP,
@@ -105,13 +105,6 @@ public:
     const Eigen::Matrix3d& pos_covariance,
     lTime stamp,
     lTime now);
-
-  // Called when there is a new measurment from an absolute position reference.
-  // The measurement is with respect to some location on the body that is not at the IMU center in
-  // general. pos_ref_body should specify the reference location in the body frame. For example,
-  // this would be the location of the GPS antenna on the body. NOT YET IMPLEMENTED void
-  // measurePosWithOffset(Eigen::Vector3d pos_meas, Matrix3d pos_covariance,
-  //        Eigen::Vector3d pos_ref_body);
 
   // Called when there is a new measurment from an absolute orientation reference.
   // The uncertianty is represented as the covariance of a rotation vector in the body frame

@@ -15,8 +15,8 @@
 using namespace std;
 using namespace Eigen;
 
-void postTF(ESKF eskf, tf::TransformBroadcaster tb, string name);
-double difference(ESKF eskfRef, ESKF eskfTest);
+void postTF(ErrorStateKalmanFilter eskf, tf::TransformBroadcaster tb, string name);
+double difference(ErrorStateKalmanFilter eskfRef, ErrorStateKalmanFilter eskfTest);
 
 int main(int argc, char** argv)
 {
@@ -24,9 +24,9 @@ int main(int argc, char** argv)
     0.00124;                  // [m/s^2]  (value derived from Noise Spectral Density in datasheet)
   double sigma_gyro = 0.276;  // [rad/s] (value derived from Noise Spectral Density in datasheet)
   double sigma_accel_drift =
-    0.001f * sigma_accel;  // [m/s^2 sqrt(s)] (Educated guess, real value to be measured)
+    0.001 * sigma_accel;  // [m/s^2 sqrt(s)] (Educated guess, real value to be measured)
   double sigma_gyro_drift =
-    0.001f * sigma_gyro;  // [rad/s sqrt(s)] (Educated guess, real value to be measured)
+    0.001 * sigma_gyro;  // [rad/s sqrt(s)] (Educated guess, real value to be measured)
 
   double sigma_init_pos = 1.0;                            // [m]
   double sigma_init_vel = 0.1;                            // [m/s]
@@ -45,49 +45,49 @@ int main(int argc, char** argv)
   //  by Larson et al (same as above, but uses all IMU measurments rather than simplificationis)
   //  eskfUpdateToNew - Keeps the state in a buffer, calculates the update that would have been made
   //  if there was no lag, then applies directly to current state.
-  ESKF eskfSpoof(
+  ErrorStateKalmanFilter eskfSpoof(
     Vector3d(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
-    ESKF::makeState(
+    ErrorStateKalmanFilter::makeState(
       Vector3d(0, 0, 1),                              // init pos
       Vector3d(0, 0, 0),                              // init vel
       Quaterniond(AngleAxisd(0, Vector3d(0, 0, 1))),  // init quaternion
       Vector3d(-1.26, -1.09, -1.977),                 // init accel bias
       Vector3d(0.114, -0.01, 0)                       // init gyro bias
       ),
-    ESKF::makeP(
+    ErrorStateKalmanFilter::makeP(
       SQ(sigma_init_pos) * I_3, SQ(sigma_init_vel) * I_3, SQ(sigma_init_dtheta) * I_3,
       SQ(sigma_init_accel_bias) * I_3, SQ(sigma_init_gyro_bias) * I_3),
     SQ(sigma_accel), SQ(sigma_gyro), SQ(sigma_accel_drift), SQ(sigma_gyro_drift),
-    ESKF::delayTypes::noMethod, 100);
-  ESKF eskfAsArrive(
+    ErrorStateKalmanFilter::delayTypes::noMethod, 100);
+  ErrorStateKalmanFilter eskfAsArrive(
     Vector3d(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
-    ESKF::makeState(
+    ErrorStateKalmanFilter::makeState(
       Vector3d(0, 0, 1),                              // init pos
       Vector3d(0, 0, 0),                              // init vel
       Quaterniond(AngleAxisd(0, Vector3d(0, 0, 1))),  // init quaternion
       Vector3d(-1.26, -1.09, -1.977),                 // init accel bias
       Vector3d(0.114, -0.01, 0)                       // init gyro bias
       ),
-    ESKF::makeP(
+    ErrorStateKalmanFilter::makeP(
       SQ(sigma_init_pos) * I_3, SQ(sigma_init_vel) * I_3, SQ(sigma_init_dtheta) * I_3,
       SQ(sigma_init_accel_bias) * I_3, SQ(sigma_init_gyro_bias) * I_3),
     SQ(sigma_accel), SQ(sigma_gyro), SQ(sigma_accel_drift), SQ(sigma_gyro_drift),
-    ESKF::delayTypes::noMethod, 100);
+    ErrorStateKalmanFilter::delayTypes::noMethod, 100);
 
-  ESKF eskfUpdateToNew(
+  ErrorStateKalmanFilter eskfUpdateToNew(
     Vector3d(0, 0, -GRAVITY),  // Acceleration due to gravity in global frame
-    ESKF::makeState(
+    ErrorStateKalmanFilter::makeState(
       Vector3d(0, 0, 1),                              // init pos
       Vector3d(0, 0, 0),                              // init vel
       Quaterniond(AngleAxisd(0, Vector3d(0, 0, 1))),  // init quaternion
       Vector3d(-1.26, -1.09, -1.977),                 // init accel bias
       Vector3d(0.114, -0.01, 0)                       // init gyro bias
       ),
-    ESKF::makeP(
+    ErrorStateKalmanFilter::makeP(
       SQ(sigma_init_pos) * I_3, SQ(sigma_init_vel) * I_3, SQ(sigma_init_dtheta) * I_3,
       SQ(sigma_init_accel_bias) * I_3, SQ(sigma_init_gyro_bias) * I_3),
     SQ(sigma_accel), SQ(sigma_gyro), SQ(sigma_accel_drift), SQ(sigma_gyro_drift),
-    ESKF::delayTypes::applyUpdateToNew, 100);
+    ErrorStateKalmanFilter::delayTypes::applyUpdateToNew, 100);
 
   // Start section that manages collecting data from files and feeding them to the ESKFs.
   // eskfSpoof is a special case that uses separated files for IMU and Mocap, it finds the next one
@@ -228,7 +228,7 @@ int main(int argc, char** argv)
        << upToNewErrorAccSqu / ((testIMUCount - 100)) - pow(upToNewError, 2) << endl;
 }
 
-double difference(ESKF eskfRef, ESKF eskfTest)
+double difference(ErrorStateKalmanFilter eskfRef, ErrorStateKalmanFilter eskfTest)
 {
   Vector3d posRef = eskfRef.getPos();
   Vector3d posTest = eskfTest.getPos();
@@ -236,7 +236,7 @@ double difference(ESKF eskfRef, ESKF eskfTest)
   return out.norm();
 }
 
-void postTF(ESKF eskf, tf::TransformBroadcaster tb, string name)
+void postTF(ErrorStateKalmanFilter eskf, tf::TransformBroadcaster tb, string name)
 {
   tf::StampedTransform pred;
   Vector3d pos = eskf.getPos();
