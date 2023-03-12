@@ -1,5 +1,5 @@
-#include "../../include/multirotor_eskf/ESKF.hpp"
-#include "../../include/multirotor_eskf/unrolledFPFt.hpp"
+#include "../../include/multirotor_eskf/eskf.hpp"
+#include "../../include/multirotor_eskf/unrolled_joseph.hpp"
 
 #define SQ(x) (x * x)
 #define I_3 (Matrix3d::Identity())

@@ -1,12 +1,10 @@
 #pragma once
 
-// Malloc is really bad on embedded platform
-// #define EIGEN_NO_MALLOC
 #include <iostream>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include "./lTime.hpp"
+#include "./l_time.hpp"
 
 #define SUPPORT_STDIOSTREAM
 

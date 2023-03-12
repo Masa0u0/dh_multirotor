@@ -1,4 +1,4 @@
-#include "../../include/multirotor_eskf/parseDataFiles.hpp"
+#include "../../include/multirotor_eskf/parse_data_files.hpp"
 
 using namespace std;
 using namespace Eigen;

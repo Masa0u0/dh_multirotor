@@ -8,7 +8,7 @@ dAB_IDX = (dTHETA_IDX + 3)
 dGB_IDX = (dAB_IDX + 3)
 dSTATE_SIZE = (dGB_IDX + 3)
 
-outfile_name = './unrolledJoseph.hpp'
+outfile_name = '../include/multirotor_eskf/unrolled_joseph.hpp'
 
 
 def make_matrix(name, rows, cols):

@@ -4,9 +4,9 @@
 #include <geometry_msgs/PoseWithCovariance.h>
 #include <tf/transform_broadcaster.h>
 
-#include "../../include/multirotor_eskf/ESKF.hpp"
-#include "../../include/multirotor_eskf/parseDataFiles.hpp"
-#include "../../include/multirotor_eskf/lTime.hpp"
+#include "../../include/multirotor_eskf/eskf.hpp"
+#include "../../include/multirotor_eskf/parse_data_files.hpp"
+#include "../../include/multirotor_eskf/l_time.hpp"
 
 #define SQ(x) (x * x)
 #define GRAVITY 9.812  // London g value.
