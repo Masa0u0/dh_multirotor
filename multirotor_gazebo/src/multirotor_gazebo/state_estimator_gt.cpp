@@ -1,5 +1,6 @@
 #include <kdl_conversions/kdl_msg.h>
 
+#include <dh_std_tools/math.hpp>
 #include <dh_ros_tools/rosparam.hpp>
 #include <dh_kdl/util.hpp>
 
@@ -7,6 +8,7 @@
 
 using namespace std;
 using namespace KDL;
+using namespace dh_std;
 
 StateEstimatorGT::StateEstimatorGT(ros::NodeHandle& nh)
 {
@@ -25,7 +27,7 @@ void StateEstimatorGT::updatePosition(const geometry_msgs::Point& pos)
 
 void StateEstimatorGT::updateRotation(const geometry_msgs::Quaternion& quat)
 {
-  eulerFromQuaternion(quat.x, quat.y, quat.z, quat.w, rpy_now_(0), rpy_now_(1), rpy_now_(2));
+  quaternionToEuler(quat.x, quat.y, quat.z, quat.w, rpy_now_(0), rpy_now_(1), rpy_now_(2));
 
   // ジャンプを考慮して更新
   updateJumpCounts();

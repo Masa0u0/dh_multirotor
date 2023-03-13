@@ -20,7 +20,7 @@ def make_matrix(name, rows, cols):
 
 def copy_lower_to_upper(M):
     for i in range(M.rows):
-        for j in range(i, M.cols):
+        for j in range(i, M.cols):  # TODO: i + 1からでよさそう
             M[i, j] = M[j, i]
 
 

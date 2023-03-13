@@ -11,4 +11,9 @@
 
 	<depend>roscpp</depend>
 
+	<depend>dh_std_tools</depend>
+	<depend>dh_ros_tools</depend>
+	<depend>dh_common_msgs</depend>
+	<depend>dh_kdl_msgs</depend>
+
 </package>
