@@ -40,6 +40,17 @@ public:
     int delayHandling,
     int bufferL);
 
+  void initialize(
+    Eigen::Vector3d a_gravity,
+    const Eigen::Matrix<double, STATE_SIZE, 1>& initialState,
+    const Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& initalP,
+    double var_acc,
+    double var_omega,
+    double var_acc_bias,
+    double var_omega_bias,
+    int delayHandling,
+    int bufferL);
+
   // Concatenates relevant vectors to one large vector.
   static Eigen::Matrix<double, STATE_SIZE, 1> makeState(
     const Eigen::Vector3d& p,
@@ -73,10 +84,6 @@ public:
   {
     return nominalState_.block<3, 1>(VEL_IDX, 0);
   }
-  inline Eigen::Vector4d getQuatVector()
-  {
-    return nominalState_.block<4, 1>(QUAT_IDX, 0);
-  }
   inline Eigen::Quaterniond getQuat()
   {
     return quatFromHamilton(getQuatVector());
@@ -103,6 +110,14 @@ public:
   void measurePos(
     const Eigen::Vector3d& pos_meas,
     const Eigen::Matrix3d& pos_covariance,
+    lTime stamp,
+    lTime now);
+
+  // Called when there is a new measurment from an absolute velocity reference.
+  // Note that this has no body offset, i.e. it assumes exact observation of the center of the IMU.
+  void measureVel(
+    const Eigen::Vector3d& vel_meas,
+    const Eigen::Matrix3d& vel_covariance,
     lTime stamp,
     lTime now);
 
@@ -153,6 +168,12 @@ private:
   // get best time from history of imu
   int getClosestTime(std::vector<imuMeasurement>* ptr, lTime stamp);
   imuMeasurement getAverageIMU(lTime stamp);
+
+  // クオータニオンをベクトルの形で得る．(w,x,y,z)の順であることに注意！x()などのメソッドでアクセスするとずれる！
+  inline Eigen::Vector4d getQuatVector()
+  {
+    return nominalState_.block<4, 1>(QUAT_IDX, 0);
+  }
 
   // IMU Noise values, used in prediction
   double var_acc_;

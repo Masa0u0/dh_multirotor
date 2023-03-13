@@ -74,6 +74,73 @@ ErrorStateKalmanFilter::ErrorStateKalmanFilter(
   }
 }
 
+void ErrorStateKalmanFilter::initialize(
+  Eigen::Vector3d a_gravity,
+  const Eigen::Matrix<double, STATE_SIZE, 1>& initialState,
+  const Eigen::Matrix<double, dSTATE_SIZE, dSTATE_SIZE>& initalP,
+  double var_acc,
+  double var_omega,
+  double var_acc_bias,
+  double var_omega_bias,
+  int delayHandling,
+  int bufferL)
+{
+  var_acc_ = var_acc;
+  var_omega_ = var_omega;
+  var_acc_bias_ = var_acc_bias;
+  var_omega_bias_ = var_omega_bias;
+  a_gravity_ = a_gravity;
+  nominalState_ = initialState;
+  P_ = initalP;
+
+  // Jacobian of the state transition: page 59, eqn 269
+  // Precompute constant part only
+  F_x_.setZero();
+  // dPos row
+  F_x_.block<3, 3>(dPOS_IDX, dPOS_IDX) = I_3;
+  // dVel row
+  F_x_.block<3, 3>(dVEL_IDX, dVEL_IDX) = I_3;
+  // dTheta row
+  // dAccelBias row
+  F_x_.block<3, 3>(dAB_IDX, dAB_IDX) = I_3;
+  // dGyroBias row
+  F_x_.block<3, 3>(dGB_IDX, dGB_IDX) = I_3;
+
+  // how to handle delayed messurements.
+  delayHandling_ = delayHandling;
+  bufferL_ = bufferL;
+  recentPtr = 0;
+  firstMeasTime = lTime(INT32_MAX, INT32_MAX);
+
+  // handle time delay methods
+  if (delayHandling_ == larsonAverageIMU || delayHandling_ == larsonFull)
+  {
+    // init circular buffer for IMU
+    imuHistoryPtr_ = new vector<imuMeasurement>(bufferL_);
+    PHistoryPtr_ = new vector<pair<lTime, Matrix<double, dSTATE_SIZE, dSTATE_SIZE>>>(bufferL);
+    for (int i = 0; i < bufferL; i++)
+    {
+      imuHistoryPtr_->at(i).time = lTime(0, 0);
+    }
+    Mptr = new Matrix<double, dSTATE_SIZE, dSTATE_SIZE>;
+  }
+  if (delayHandling_ == larsonNewestIMU)
+  {
+    // init newest value
+    lastImu_.time = lTime(0, 0);
+    Mptr = new Matrix<double, dSTATE_SIZE, dSTATE_SIZE>;
+  }
+  if (delayHandling_ == applyUpdateToNew || delayHandling_ == larsonAverageIMU)
+  {
+    // init circular buffer for state
+    stateHistoryPtr_ = new vector<pair<lTime, Matrix<double, STATE_SIZE, 1>>>(bufferL_);
+    for (int i = 0; i < bufferL; i++)
+    {
+      stateHistoryPtr_->at(i).first = lTime(0, 0);
+    }
+  }
+}
+
 Matrix<double, STATE_SIZE, 1> ErrorStateKalmanFilter::makeState(
   const Vector3d& p,
   const Vector3d& v,
@@ -320,7 +387,7 @@ void ErrorStateKalmanFilter::measurePos(
   if (delayHandling_ == noMethod || delayHandling_ == larsonAverageIMU)
   {
     delta_pos = pos_meas - getPos();
-    cout << "noMethod delta Pos: " << delta_pos << endl;
+    // cout << "noMethod delta Pos: " << delta_pos << endl;
   }
 
   if (delayHandling_ == applyUpdateToNew)
@@ -334,7 +401,7 @@ void ErrorStateKalmanFilter::measurePos(
     }
     else
       delta_pos = pos_meas - getPos();
-    cout << "UpToNew Pos: " << delta_pos << endl;
+    // cout << "UpToNew Pos: " << delta_pos << endl;
   }
   if (delayHandling_ == larsonAverageIMU)
   {
@@ -349,6 +416,51 @@ void ErrorStateKalmanFilter::measurePos(
 
   // Apply update
   update_3D(delta_pos, pos_covariance, H, stamp, now);
+}
+
+void ErrorStateKalmanFilter::measureVel(
+  const Vector3d& vel_meas,
+  const Matrix3d& vel_covariance,
+  lTime stamp,
+  lTime now)
+{
+  // delta measurement
+  if (firstMeasTime == lTime(INT32_MAX, INT32_MAX))
+    firstMeasTime = now;
+
+  Vector3d delta_vel;
+  if (delayHandling_ == noMethod || delayHandling_ == larsonAverageIMU)
+  {
+    delta_vel = vel_meas - getVel();
+    // cout << "noMethod delta Vel: " << delta_vel << endl;
+  }
+
+  if (delayHandling_ == applyUpdateToNew)
+  {
+    if (lastMeasurement < stateHistoryPtr_->at((recentPtr + 1) % bufferL_).first)
+      firstMeasTime = now;
+    if (stamp > firstMeasTime)
+    {
+      int bestTimeIndex = getClosestTime(stateHistoryPtr_, stamp);
+      delta_vel = vel_meas - stateHistoryPtr_->at(bestTimeIndex).second.block<3, 1>(VEL_IDX, 0);
+    }
+    else
+      delta_vel = vel_meas - getVel();
+    // cout << "UpToNew Vel: " << delta_vel << endl;
+  }
+  if (delayHandling_ == larsonAverageIMU)
+  {
+    if (lastMeasurement < imuHistoryPtr_->at((recentPtr + 1) % bufferL_).time)
+      firstMeasTime = now;
+  }
+  lastMeasurement = now;
+  // H is a trivial observation of purely the velocity
+  Matrix<double, 3, dSTATE_SIZE> H;
+  H.setZero();
+  H.block<3, 3>(0, dVEL_IDX) = I_3;
+
+  // Apply update
+  update_3D(delta_vel, vel_covariance, H, stamp, now);
 }
 
 void ErrorStateKalmanFilter::measureQuat(

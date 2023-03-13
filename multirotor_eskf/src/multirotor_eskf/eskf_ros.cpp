@@ -140,6 +140,7 @@ void ErrorStateKalmanFilterRos::imuCb(const ImuMsg& msg)
   }
 
   ros::Duration diff = imu_.header.stamp - t_last_;
+  t_last_ = imu_.header.stamp;
   ROS_ASSERT(diff.toSec() > 0.);
   lTime stamp(imu_.header.stamp.sec, imu_.header.stamp.nsec);
 
@@ -147,6 +148,7 @@ void ErrorStateKalmanFilterRos::imuCb(const ImuMsg& msg)
   tf::vectorMsgToEigen(imu_.angular_velocity, w_m_);
 
   eskf_.predictIMU(a_m_, w_m_, diff.toSec(), stamp);
+  // eskf_.predictIMU(Vector3d(0, 0, GRAVITY), Vector3d::Zero(), diff.toSec(), stamp);
 
   updatePoseVelMsg();
   posevel_pub_.publish(posevel_);
@@ -160,12 +162,12 @@ void ErrorStateKalmanFilterRos::magCb(const MagMsg& msg)
   lTime stamp(mag_.header.stamp.sec, mag_.header.stamp.nsec);
   lTime now = getNow();
 
-  // TODO: バイアスを引いた値を使う？
-  const auto& a = imu_.linear_acceleration;
-  const auto& m = mag_.magnetic_field;
+  // FIXME: 観測が状態に依存してるのはマズい気がする
+  const Vector3d a = a_m_ - eskf_.getAccelBias();
+  const geometry_msgs::Vector3& m = mag_.magnetic_field;
   imuToQuaternion(
-    a.x, a.y, a.z, m.x, m.y, m.z, ref_mag_.x(), ref_mag_.y(), ref_mag_.z(), q_m_.x(), q_m_.y(),
-    q_m_.z(), q_m_.w());
+    a.x(), a.y(), a.z(), m.x, m.y, m.z, ref_mag_.x(), ref_mag_.y(), ref_mag_.z(), q_m_.x(),
+    q_m_.y(), q_m_.z(), q_m_.w());
 
   // TODO: 加速度センサのノイズの分散からクォータニオンのノイズの共分散を正しく計算する
   // sensor_msgs::Imuのlinear_acceleration_covarianceを用いる
@@ -173,6 +175,7 @@ void ErrorStateKalmanFilterRos::magCb(const MagMsg& msg)
   const double quat_var = acc_noise_var / sqr(GRAVITY);  // これはテキトーにスケーリングしてるだけ
 
   eskf_.measureQuat(q_m_, quat_var * I_3, stamp, now);
+  // eskf_.measureQuat(Quaterniond::Identity(), quat_var * I_3, stamp, now);
 }
 
 void ErrorStateKalmanFilterRos::barCb(const BarMsg& msg)
@@ -197,6 +200,7 @@ void ErrorStateKalmanFilterRos::gpsCb(const GpsMsg& msg)
   Matrix3d cov = Map<Matrix3d>(gps_.position_covariance.data());
 
   eskf_.measurePos(p_m_, cov, stamp, now);
+  // eskf_.measurePos(Vector3d::Zero(), cov, stamp, now);
 }
 
 void ErrorStateKalmanFilterRos::velCb(const VelMsg& msg)
@@ -211,6 +215,7 @@ void ErrorStateKalmanFilterRos::velCb(const VelMsg& msg)
   Matrix3d cov = Map<Matrix3d>(vel_.vel.covariance.data());
 
   eskf_.measureVel(v_m_, cov, stamp, now);
+  // eskf_.measureVel(Vector3d::Zero(), cov, stamp, now);
 }
 
 lTime ErrorStateKalmanFilterRos::getNow()
